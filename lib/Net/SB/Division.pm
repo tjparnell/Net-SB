@@ -9,6 +9,7 @@ use base 'Net::SB';
 use Net::SB::Project;
 use Net::SB::Member;
 use Net::SB::Team;
+use Net::SB::Volume;
 
 sub new {
 	my $class = shift;
@@ -210,6 +211,41 @@ sub bulk_get_file_details {
 		}
 	}
 	return $success;
+}
+
+sub list_volumes {
+	my $self = shift;
+	my $url = sprintf "%s/storage/volumes", $self->endpoint;
+	my $headers = {
+		'x-sbg-advance-access' => 'advance'
+	};
+	my @results = $self->execute('GET', $url, $headers);
+	if (@results) {
+		my @volumes;
+		foreach my $r (@results) {
+			push @volumes, Net::SB::Volume->new($self, $r);
+		}
+		return wantarray ? @volumes : \@volumes;
+	}
+	else {
+		return;
+	}
+}
+
+sub get_volume {
+	my ($self, $name) = @_;
+	my $vols = $self->list_volumes;
+	foreach my $v (@{$vols}) {
+		if ($v->name eq $name) {
+			return $v;
+		}
+	}
+	return;
+}
+
+sub attach_volume {
+	my $self = shift;
+	return Net::SB::Volume->new($self, @_);
 }
 
 1;
