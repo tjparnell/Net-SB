@@ -1,21 +1,10 @@
 package Net::SB::Project;
 
-
-=head1 Net::SB::Project
-
-Class object representing a Project on the Seven Bridges platform.
-
-See Net::SB documentation for details.
-
-=cut
-
-
+use warnings;
 use strict;
 use Carp;
 use base 'Net::SB';
 use Net::SB::Member;
-
-1;
 
 sub new {
 	my ($class, $parent, $result) = @_;
@@ -223,7 +212,15 @@ sub bulk_upload {
 	return $result;
 }
 
+1;
+
 __END__
+
+=head1 Net::SB::Project
+
+Class object representing a Project on the Seven Bridges platform.
+
+See Net::SB documentation for details.
 
 =head1 AUTHOR
 

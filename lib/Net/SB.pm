@@ -1,5 +1,348 @@
 package Net::SB;
+
+use warnings;
+use strict;
+use Carp;
+use HTTP::Tiny;
+use JSON::PP;	# this is reliably installed, XS is not
+				# XS would be better performance, but we're not doing anything complicated
+use Net::SB::Division;
+
 our $VERSION = 0.1;
+
+
+# Initialize 
+# BEGIN {
+# 	# this is only for more recent versions, so disabled
+# 	# it will have to fail later if SSL stuff isn't available
+# 	unless (HTTP::Tiny->can_ssl) {
+# 		die "No SSL support installed. Please install Net::SSLeay and IO::Socket::SSL";
+# 	}
+# }
+my $http = HTTP::Tiny->new();
+
+1;
+
+
+
+sub new {
+	my $class = shift;
+	if (ref($class)) {
+		$class = ref($class);
+	}
+	
+	# arguments
+	my %args = @_;
+	my $division = $args{div} || $args{division} || $args{profile} || undef;
+	my $cred_path = $args{cred} || $args{cred_path} || $args{credentials} || undef;
+	my $token = $args{token} || undef;
+	my $verb = $args{verbose} || $args{verb} || 0;
+	my $endpoint = $args{endpoint} || 'https://api.sbgenomics.com/v2'; # default
+	
+	# check for credentials file
+	if (defined $cred_path) {
+		unless (-e $cred_path and -r _ ) {
+			croak "bad credential file path! File unreadable or doesn't exist";
+		}
+	}
+	else {
+		my $f = File::Spec->catfile($ENV{HOME}, '.sevenbridges', 'credentials');
+		if (-e $f and -r _ ) {
+			$cred_path = $f;
+		}
+		else {
+			croak "no credentials file available!";
+		}
+	}
+	
+	# bless early
+	my $self = {
+		div     => $division,
+		cred    => $cred_path,
+		verb    => $verb,
+		end     => $endpoint,
+	};
+	bless $self, $class;
+	
+		
+	# conditional return
+	if (defined $division) {
+		# go ahead and get token
+		unless (defined $token) {
+			$token = $self->token;
+		}
+		return Net::SB::Division->new(
+			div     => $division,
+			cred    => $cred_path,
+			token   => $token,
+			name    => $args{name}, # just in case?
+			verbose => $verb,
+			end     => $self->endpoint,
+		);
+	}
+	else {
+		return $self;
+	}
+}
+
+sub credentials {
+	return shift->{cred};
+}
+
+sub division {
+	# convenience generic method
+	return shift->{div} || undef;
+}
+
+sub endpoint {
+	my $self = shift;
+	if (@_) {
+		my $url = $_[0];
+		unless ($url =~ /^https:\/\//) {
+			croak "given API endpoint '$url' does not look like a URL!";
+		}
+		$url =~ s/\/$//; # remove trailing slash
+		$self->{end} = $url;
+	}
+	return $self->{end};
+}
+
+sub verbose {
+	my $self = shift;
+	if (@_) {
+		$self->{verb} = $_[0];
+	}
+	return $self->{verb};
+}
+
+sub token {
+	my $self = shift;
+	
+	# check token
+	unless (defined $self->{token}) {
+		# need to collect the token from a credentials file
+		my $cred_path = $self->{cred};
+		
+		# division
+		my $division = $self->division;
+		unless ($division) {
+			confess "no division is specified!?";
+		}
+		
+		# pull token
+		my $token;
+		my $fh = IO::File->new($cred_path) or 
+			die "unable to read credentials files!\n";
+		my $target = sprintf("[%s]", $division);
+		while (my $line = $fh->getline) {
+			chomp $line;
+			if ($line eq $target) {
+				# we found the section!
+				while (my $line2 = $fh->getline) {
+					if ($line2 =~ m/^\[/) {
+						# we've gone too far!!!??? start of next section
+						last;
+					}
+					elsif ($line2 =~ /^api_endpoint\s*=\s*(https:\/\/[\w\/\.\-]+)$/) {
+						# we found the user's API endpoint
+						# go ahead and store it
+						print "> found endpoint: $1\n";
+						$self->endpoint($1);
+					}
+					elsif ($line2 =~ /^auth_token\s*=\s*(\w+)$/) {
+						# we found the user's token!
+						print "> found token\n";
+						$token = $1;
+					}
+				}
+			}
+		}
+		$fh->close;
+		unless ($token) {
+			# carp " unable to get token from credentials file for division $division!\n";
+			return;
+		}
+		$self->{token} = $token;
+	}
+	
+	return $self->{token};
+}
+
+sub execute {
+	my ($self, $method, $url, $headers, $data) = @_;
+	
+	# check method
+	unless ($method eq 'GET' or $method eq 'POST' or $method eq 'DELETE') {
+		confess "unrecognized method $method! Must be GET|POST|DELETE";
+	}
+	
+	# check URL
+	unless (defined $url) {
+		confess "a URL is required!";
+	}
+	
+	# check token
+	my $token = $self->token;
+	unless ($token) {
+		my $division = $self->division;
+		carp " unable to get token from credentials file for division $division!\n";
+		return;
+	}
+	
+	# add standard key values to headers
+	if (defined $headers and ref($headers) ne 'HASH') {
+		confess "provided header options must be a HASH reference!";
+	}
+	else {
+		$headers ||= {};
+	}
+	$headers->{'Content-Type'} = 'application/json';
+	$headers->{'X-SBG-Auth-Token'} = $token;
+	
+	# http tiny request options
+	my $options = {headers => $headers};
+	
+	# any post content options
+	if (defined $data) {
+		unless (ref($data) eq 'HASH') {
+			confess "provided POST data must be a HASH reference!";
+		}
+		$options->{content} = encode_json($data);
+	}
+	
+	# send request
+	if ($self->verbose) {
+		printf " > Executing $method to $url\n";
+		if ($data) {printf "   data: %s\n", $options->{content}}
+	}
+	my $response = $http->request($method, $url, $options) or 
+		confess "can't send http request!";
+	if ($self->verbose) {
+		printf" > Received %s %s\n > Contents: %s\n", $response->{status}, 
+			$response->{reason}, $response->{content};
+	}
+	
+	# check response
+	my $result;
+	if ($response->{success}) {
+		# success is a 2xx http status code, decode results
+		$result = decode_json($response->{content});
+	}
+	elsif ($method eq 'GET' and $response->{status} eq '404') {
+		# we can interpret this as a possible acceptable negative answer
+		return;
+	}
+	elsif ($method eq 'DELETE') {
+		# not sure what the status code for delete is, but it might be ok
+		printf "> DELETE request returned %s: %s\n", $response->{status}, 
+			$response->{reason};
+		return 1;
+	}
+	elsif (exists $response->{reason} and $response->{reason} eq 'Internal Exception') {
+		confess "http request suffered an internal exception: $response->{content}";
+	}
+	else {
+		confess sprintf("A %s error occured: %s: %s", $response->{status}, 
+			$response->{reason}, $response->{content});
+		return;
+	}
+	
+	# check for items
+	if (exists $result->{items}) {
+		my @items = @{ $result->{items} };
+		
+		# check for more items
+		if (exists $result->{links} and scalar @{$result->{links}} > 0) {
+			# we likely have additional items, and the next link is conveniently provided
+			# get the next link
+			my $next;
+			foreach my $l (@{$result->{links}}) {
+				if (exists $l->{rel} and $l->{rel} eq 'next') {
+					$next = $l;
+					last;
+				}
+			}
+			# keep going until we get them all
+			while ($next) {
+				if ($self->verbose) {
+					printf " > Executing next %s request to %s\n", $next->{method}, $next->{href};
+				}
+				my $res = $http->request($next->{method}, $next->{href}, $options);
+				if ($res->{reason} eq 'OK') {
+					my $result2 = decode_json($res->{content});
+					if ($self->verbose) {
+						printf "  > Collected %d additional items\n", scalar(@{$result2->{items}});
+					}
+					push @items, @{ $result2->{items} };
+					undef($next);
+					foreach my $l (@{$result2->{links}}) {
+						if (exists $l->{rel} and $l->{rel} eq 'next') {
+							$next = $l;
+							last;
+						}
+					}
+				}
+				else {
+					croak sprintf("Failure to get next items with URL %s\n A %s error occurred: %s: %s",
+						$next->{href}, $res->{status}, $res->{reason}, $res->{content});
+				}
+			}
+		}
+		
+		# make sure we don't have duplicates
+		# at least the list_divisions method returns a ton of duplicates - a bug?
+		# insert sanity check here as a general method, just in case the bug afflicts
+		# other things too
+		my %seenit;
+		my @keep;
+		foreach my $i (@items) {
+			next if exists $seenit{ $i->{href} };
+			$seenit{ $i->{href} } = 1;
+			push @keep, $i;
+		}
+		
+		# done
+		return wantarray ? @keep : \@keep;
+	}
+	
+	# appears to be a single result, not a list
+	return $result;
+}
+
+sub list_divisions {
+	my $self = shift;
+	return unless ref($self) eq 'Net::SB'; # this should not be accessible by inherited objects
+	my $options = {
+		'x-sbg-advance-access' => 'advance'
+	};
+	unless ($self->{div}) {
+		$self->{div} = 'default';
+	}
+	my $token = $self->token; 
+		# we don't actually need the token yet, but it will force reading credentials file
+		# and update the api endpoint in case it's different from the default value
+	my @items = $self->execute('GET', sprintf("%s/divisions", $self->endpoint), 
+		$options);
+	my $cred = $self->credentials;
+	my $verb = $self->verbose;
+	my $end  = $self->endpoint;
+	my @divisions = map {
+		Net::SB::Division->new(
+			div     => $_->{id},
+			name    => $_->{name},
+			href    => $_->{href},
+			cred    => $cred,
+			verbose => $verb,
+			end     => $end,
+		);
+	} @items;
+	
+	return wantarray ? @divisions : \@divisions;
+}
+
+1;
+
+__END__
 
 =head1 NAME
 
@@ -347,350 +690,6 @@ Provide the member ID or L<Net::SB::Member> object to remove from the Team.
 The return value may not necessarily be true. 
 
 =back
-
-=cut
-
-use strict;
-use Carp;
-use HTTP::Tiny;
-use JSON::PP;	# this is reliably installed, XS is not
-				# XS would be better performance, but we're not doing anything complicated
-use Net::SB::Division;
-
-
-
-# Initialize 
-# BEGIN {
-# 	# this is only for more recent versions, so disabled
-# 	# it will have to fail later if SSL stuff isn't available
-# 	unless (HTTP::Tiny->can_ssl) {
-# 		die "No SSL support installed. Please install Net::SSLeay and IO::Socket::SSL";
-# 	}
-# }
-my $http = HTTP::Tiny->new();
-
-1;
-
-
-
-sub new {
-	my $class = shift;
-	if (ref($class)) {
-		$class = ref($class);
-	}
-	
-	# arguments
-	my %args = @_;
-	my $division = $args{div} || $args{division} || $args{profile} || undef;
-	my $cred_path = $args{cred} || $args{cred_path} || $args{credentials} || undef;
-	my $token = $args{token} || undef;
-	my $verb = $args{verbose} || $args{verb} || 0;
-	my $endpoint = $args{endpoint} || 'https://api.sbgenomics.com/v2'; # default
-	
-	# check for credentials file
-	if (defined $cred_path) {
-		unless (-e $cred_path and -r _ ) {
-			croak "bad credential file path! File unreadable or doesn't exist";
-		}
-	}
-	else {
-		my $f = File::Spec->catfile($ENV{HOME}, '.sevenbridges', 'credentials');
-		if (-e $f and -r _ ) {
-			$cred_path = $f;
-		}
-		else {
-			croak "no credentials file available!";
-		}
-	}
-	
-	# bless early
-	my $self = {
-		div     => $division,
-		cred    => $cred_path,
-		verb    => $verb,
-		end     => $endpoint,
-	};
-	bless $self, $class;
-	
-		
-	# conditional return
-	if (defined $division) {
-		# go ahead and get token
-		unless (defined $token) {
-			$token = $self->token;
-		}
-		return Net::SB::Division->new(
-			div     => $division,
-			cred    => $cred_path,
-			token   => $token,
-			name    => $args{name}, # just in case?
-			verbose => $verb,
-			end     => $self->endpoint,
-		);
-	}
-	else {
-		return $self;
-	}
-}
-
-sub credentials {
-	return shift->{cred};
-}
-
-sub division {
-	# convenience generic method
-	return shift->{div} || undef;
-}
-
-sub endpoint {
-	my $self = shift;
-	if (@_) {
-		my $url = $_[0];
-		unless ($url =~ /^https:\/\//) {
-			croak "given API endpoint '$url' does not look like a URL!";
-		}
-		$url =~ s/\/$//; # remove trailing slash
-		$self->{end} = $url;
-	}
-	return $self->{end};
-}
-
-sub verbose {
-	my $self = shift;
-	if (@_) {
-		$self->{verb} = $_[0];
-	}
-	return $self->{verb};
-}
-
-sub token {
-	my $self = shift;
-	
-	# check token
-	unless (defined $self->{token}) {
-		# need to collect the token from a credentials file
-		my $cred_path = $self->{cred};
-		
-		# division
-		my $division = $self->division;
-		unless ($division) {
-			confess "no division is specified!?";
-		}
-		
-		# pull token
-		my $token;
-		my $fh = IO::File->new($cred_path) or 
-			die "unable to read credentials files!\n";
-		my $target = sprintf("[%s]", $division);
-		while (my $line = $fh->getline) {
-			chomp $line;
-			if ($line eq $target) {
-				# we found the section!
-				while (my $line2 = $fh->getline) {
-					if ($line2 =~ m/^\[/) {
-						# we've gone too far!!!??? start of next section
-						last;
-					}
-					elsif ($line2 =~ /^api_endpoint\s*=\s*(https:\/\/[\w\/\.\-]+)$/) {
-						# we found the user's API endpoint
-						# go ahead and store it
-						print "> found endpoint: $1\n";
-						$self->endpoint($1);
-					}
-					elsif ($line2 =~ /^auth_token\s*=\s*(\w+)$/) {
-						# we found the user's token!
-						print "> found token\n";
-						$token = $1;
-					}
-				}
-			}
-		}
-		$fh->close;
-		unless ($token) {
-			# carp " unable to get token from credentials file for division $division!\n";
-			return;
-		}
-		$self->{token} = $token;
-	}
-	
-	return $self->{token};
-}
-
-sub execute {
-	my ($self, $method, $url, $headers, $data) = @_;
-	
-	# check method
-	unless ($method eq 'GET' or $method eq 'POST' or $method eq 'DELETE') {
-		confess "unrecognized method $method! Must be GET|POST|DELETE";
-	}
-	
-	# check URL
-	unless (defined $url) {
-		confess "a URL is required!";
-	}
-	
-	# check token
-	my $token = $self->token;
-	unless ($token) {
-		my $division = $self->division;
-		carp " unable to get token from credentials file for division $division!\n";
-		return;
-	}
-	
-	# add standard key values to headers
-	if (defined $headers and ref($headers) ne 'HASH') {
-		confess "provided header options must be a HASH reference!";
-	}
-	else {
-		$headers ||= {};
-	}
-	$headers->{'Content-Type'} = 'application/json';
-	$headers->{'X-SBG-Auth-Token'} = $token;
-	
-	# http tiny request options
-	my $options = {headers => $headers};
-	
-	# any post content options
-	if (defined $data) {
-		unless (ref($data) eq 'HASH') {
-			confess "provided POST data must be a HASH reference!";
-		}
-		$options->{content} = encode_json($data);
-	}
-	
-	# send request
-	if ($self->verbose) {
-		printf " > Executing $method to $url\n";
-		if ($data) {printf "   data: %s\n", $options->{content}}
-	}
-	my $response = $http->request($method, $url, $options) or 
-		confess "can't send http request!";
-	if ($self->verbose) {
-		printf" > Received %s %s\n > Contents: %s\n", $response->{status}, 
-			$response->{reason}, $response->{content};
-	}
-	
-	# check response
-	my $result;
-	if ($response->{success}) {
-		# success is a 2xx http status code, decode results
-		$result = decode_json($response->{content});
-	}
-	elsif ($method eq 'GET' and $response->{status} eq '404') {
-		# we can interpret this as a possible acceptable negative answer
-		return;
-	}
-	elsif ($method eq 'DELETE') {
-		# not sure what the status code for delete is, but it might be ok
-		printf "> DELETE request returned %s: %s\n", $response->{status}, 
-			$response->{reason};
-		return 1;
-	}
-	elsif (exists $response->{reason} and $response->{reason} eq 'Internal Exception') {
-		confess "http request suffered an internal exception: $response->{content}";
-	}
-	else {
-		confess sprintf("A %s error occured: %s: %s", $response->{status}, 
-			$response->{reason}, $response->{content});
-		return;
-	}
-	
-	# check for items
-	if (exists $result->{items}) {
-		my @items = @{ $result->{items} };
-		
-		# check for more items
-		if (exists $result->{links} and scalar @{$result->{links}} > 0) {
-			# we likely have additional items, and the next link is conveniently provided
-			# get the next link
-			my $next;
-			foreach my $l (@{$result->{links}}) {
-				if (exists $l->{rel} and $l->{rel} eq 'next') {
-					$next = $l;
-					last;
-				}
-			}
-			# keep going until we get them all
-			while ($next) {
-				if ($self->verbose) {
-					printf " > Executing next %s request to %s\n", $next->{method}, $next->{href};
-				}
-				my $res = $http->request($next->{method}, $next->{href}, $options);
-				if ($res->{reason} eq 'OK') {
-					my $result2 = decode_json($res->{content});
-					if ($self->verbose) {
-						printf "  > Collected %d additional items\n", scalar(@{$result2->{items}});
-					}
-					push @items, @{ $result2->{items} };
-					undef($next);
-					foreach my $l (@{$result2->{links}}) {
-						if (exists $l->{rel} and $l->{rel} eq 'next') {
-							$next = $l;
-							last;
-						}
-					}
-				}
-				else {
-					croak sprintf("Failure to get next items with URL %s\n A %s error occurred: %s: %s",
-						$next->{href}, $res->{status}, $res->{reason}, $res->{content});
-				}
-			}
-		}
-		
-		# make sure we don't have duplicates
-		# at least the list_divisions method returns a ton of duplicates - a bug?
-		# insert sanity check here as a general method, just in case the bug afflicts
-		# other things too
-		my %seenit;
-		my @keep;
-		foreach my $i (@items) {
-			next if exists $seenit{ $i->{href} };
-			$seenit{ $i->{href} } = 1;
-			push @keep, $i;
-		}
-		
-		# done
-		return wantarray ? @keep : \@keep;
-	}
-	
-	# appears to be a single result, not a list
-	return $result;
-}
-
-sub list_divisions {
-	my $self = shift;
-	return unless ref($self) eq 'Net::SB'; # this should not be accessible by inherited objects
-	my $options = {
-		'x-sbg-advance-access' => 'advance'
-	};
-	unless ($self->{div}) {
-		$self->{div} = 'default';
-	}
-	my $token = $self->token; 
-		# we don't actually need the token yet, but it will force reading credentials file
-		# and update the api endpoint in case it's different from the default value
-	my @items = $self->execute('GET', sprintf("%s/divisions", $self->endpoint), 
-		$options);
-	my $cred = $self->credentials;
-	my $verb = $self->verbose;
-	my $end  = $self->endpoint;
-	my @divisions = map {
-		Net::SB::Division->new(
-			div     => $_->{id},
-			name    => $_->{name},
-			href    => $_->{href},
-			cred    => $cred,
-			verbose => $verb,
-			end     => $end,
-		);
-	} @items;
-	
-	return wantarray ? @divisions : \@divisions;
-}
-
-
-
-__END__
 
 =head1 AUTHOR
 

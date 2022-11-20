@@ -1,22 +1,9 @@
 package Net::SB::Member;
 
-
-=head1 Net::SB::Member
-
-Class object representing a Member on the Seven Bridges platform.
-
-See Net::SB documentation for details.
-
-=cut
-
-
+use warnings;
 use strict;
 use Carp;
 use base 'Net::SB';
-
-
-
-1;
 
 sub new {
 	my ($class, $parent, $result) = @_;
@@ -142,7 +129,15 @@ sub href {
 	return $self->{href};
 }
 
+1;
+
 __END__
+
+=head1 Net::SB::Member
+
+Class object representing a Member on the Seven Bridges platform.
+
+See Net::SB documentation for details.
 
 =head1 AUTHOR
 

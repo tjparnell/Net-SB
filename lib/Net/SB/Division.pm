@@ -1,15 +1,6 @@
 package Net::SB::Division;
 
-
-=head1 Net::SB::Division
-
-Class object representing a Division on the Seven Bridges platform.
-
-See Net::SB documentation for details.
-
-=cut
-
-
+use warnings;
 use strict;
 use Carp;
 use IO::File;
@@ -18,8 +9,6 @@ use base 'Net::SB';
 use Net::SB::Project;
 use Net::SB::Member;
 use Net::SB::Team;
-
-1;
 
 sub new {
 	my $class = shift;
@@ -162,6 +151,12 @@ sub create_team {
 }
 
 __END__
+
+=head1 Net::SB::Division
+
+Class object representing a Division on the Seven Bridges platform.
+
+See Net::SB documentation for details.
 
 =head1 AUTHOR
 

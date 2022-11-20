@@ -1,20 +1,10 @@
 package Net::SB::Team;
 
-=head1 Net::SB::Team
-
-Class object representing a Team on the Seven Bridges platform.
-
-See Net::SB documentation for details.
-
-=cut
-
-
+use warnings;
 use strict;
 use Carp;
 use base 'Net::SB';
 use Net::SB::Member;
-
-1;
 
 sub new {
 	my ($class, $parent, $result, $name) = @_;
@@ -113,7 +103,15 @@ sub delete_member {
 	return $self->execute('DELETE', $url); # this may not necessarily be true
 }
 
+1;
+
 __END__
+
+=head1 Net::SB::Team
+
+Class object representing a Team on the Seven Bridges platform.
+
+See Net::SB documentation for details.
 
 =head1 AUTHOR
 
