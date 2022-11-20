@@ -8,7 +8,7 @@ use Net::SB::Member;
 
 sub new {
 	my ($class, $parent, $result) = @_;
-	
+
 	# create object based on the given result
 	unless (defined $result and ref($result) eq 'HASH') {
 		confess "Must call new() with a parsed JSON project result HASH!"
@@ -59,18 +59,18 @@ sub update {
 		carp "no data to update!?";
 		return;
 	}
-	
+
 	# set URL, using simple POST since I don't think client supports PATCH
 	my $url = $self->href . '?_method=PATCH';
-	
+
 	# execute
-	my $result = $self->execute('POST', $url, undef, \%data); 
-	
+	my $result = $self->execute('POST', $url, undef, \%data);
+
 	# blindly replace all the update key values
-	foreach my $key (keys %$result) {
+	foreach my $key (keys %{$result}) {
 		$self->{$key} = $result->{$key};
 	}
-	
+
 	return 1;
 }
 
@@ -79,7 +79,7 @@ sub list_members {
 	unless ($self->{members}) {
 		my $url = $self->{href} . '/members';
 		my @results = $self->execute('GET', $url);
-		my @members = map { Net::SB::Member->new($self, $_) } @results; 
+		my @members = map { Net::SB::Member->new($self, $_) } @results;
 		$self->{members} = \@members;
 	}
 	return wantarray ? @{ $self->{members} } : $self->{members};
@@ -93,42 +93,49 @@ sub add_member {
 		carp "Must pass a member object or username to add a member!";
 		return;
 	}
-	
+
 	# set default permissions
 	$permissions{'read'} ||= 'true';
 	$permissions{'copy'} ||= 'true';
-	
+
 	# data
 	my $data = {
 		permissions => \%permissions,
 	};
-	
+
 	# get member username
 	if (ref($member) eq 'Net::SB::Member') {
 		$data->{username} = $member->id; # must be longform username division/username
-		printf(" >> adding member id %s\n", $data->{name}) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> adding member id %s\n", $data->{name};
+		}
 	}
 	elsif (ref($member) eq 'Net::SB::Team') {
 		$data->{username} = $member->id;
 		$data->{type} = 'TEAM';
-		printf(" >> adding team id %s\n", $data->{name}) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> adding team id %s\n", $data->{name};
+		}
 	}
-	elsif ($member =~ /^[a-z0-9\-]+\/[\w\-\.]+$/) {
+	elsif ($member =~ m/^ [a-z0-9\-]+ \/ [\w\-\.]+ $/x) {
 		# looks like a typical id
 		$data->{username} = $member;
-		printf(" >> adding given member id %s\n", $data->{name}) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> adding given member id %s\n", $data->{name};
+		}
 	}
-	elsif ($member =~ /^[\w\.\-]+@[\w\.\-]+\.(?:com|edu|org)$/) {
+	elsif ($member =~ m/^ [\w\.\-]+ @ [\w\.\-]+ \. (?: com | edu | org ) $/x) {
 		# looks like an email address
 		$data->{email} = $member;
-		printf(" >> adding given member email %s\n", $data->{name}) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> adding given member email %s\n", $data->{name};
+		}
 	}
 	else {
 		carp "unrecognized member format!";
 		return;
 	}
-	
-	
+
 	# execute
 	my $url = $self->href . '/members';
 	my $result = $self->execute('POST', $url, undef, $data);
@@ -139,7 +146,7 @@ sub modify_member_permission {
 	my $self = shift;
 	my $member = shift;
 	my %permissions = @_;
-	
+
 	unless ($member) {
 		carp "Must pass a member object or username to add a member!";
 		return;
@@ -147,27 +154,33 @@ sub modify_member_permission {
 	unless (%permissions) {
 		carp "Must pass a permissions to change!";
 	}
-	
+
 	# get member username
 	my $username;
 	if (ref($member) eq 'Net::SB::Member') {
 		$username = $member->id; # must be longform username division/username
-		printf(" >> updating member id %s\n", $username) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> updating member id %s\n", $username;
+		}
 	}
 	elsif (ref($member) eq 'Net::SB::Team') {
 		$username = $member->id;
-		printf(" >> updating team id %s\n", $username) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> updating team id %s\n", $username;
+		}
 	}
-	elsif ($member =~ /^[a-z0-9\-]+\/[\w\-\.]+$/) {
+	elsif ($member =~ m/^ [a-z0-9\-]+ \/ [\w\-\.]+ $/x) {
 		# looks like a typical id
 		$username = $member;
-		printf(" >> updating given id %s\n", $username) if $self->verbose;
+		if ($self->verbose) {
+			printf " >> updating given id %s\n", $username;
+		}
 	}
 	else {
 		carp "unrecognized member format '$member'!";
 		return;
 	}
-	
+
 	# execute
 	my $url = $self->href . "/members/$username/permissions?_method=PATCH";
 	my $result = $self->execute('POST', $url, undef, \%permissions);

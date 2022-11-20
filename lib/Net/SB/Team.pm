@@ -8,7 +8,7 @@ use Net::SB::Member;
 
 sub new {
 	my ($class, $parent, $result, $name) = @_;
-	
+
 	# create object based on the given result
 	unless (defined $result and ref($result) eq 'HASH') {
 		confess "Must call new() with a parsed JSON team result HASH!";
@@ -40,12 +40,12 @@ sub href {
 
 sub list_members {
 	my $self = shift;
-	
+
 	# execute
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $url = sprintf "%s/teams/%s/members", $self->endpoint, $self->{id};
 	my $results = $self->execute('GET', $url, $h);
-	my @members = map { Net::SB::Member->new($self, $_) } @$results;
+	my @members = map { Net::SB::Member->new($self, $_) } @{$results};
 	return wantarray ? @members : \@members;
 }
 
@@ -56,7 +56,7 @@ sub add_member {
 		carp "Must pass a member object or ID to add a member!";
 		return;
 	}
-	
+
 	# get member id
 	my $id;
 	if (ref($member) eq 'Net::SB::Member') {
@@ -65,11 +65,11 @@ sub add_member {
 	else {
 		$id = $member;
 	}
-	if ($id !~ /^[a-z0-9\-]+\/[a-z0-9\-]+$/) {
+	if ($id !~ m/^ [a-z0-9\-]+ \/ [a-z0-9\-]+ $/x) {
 		carp "ID '$id' doesn't match expected pattern of lab-division/user-name";
 		return;
 	}
-	
+
 	# execute
 	my $data = { 'id' => $id };
 	my $url = $self->href . '/members';
@@ -84,7 +84,7 @@ sub delete_member {
 		carp "Must pass a member object or ID to add a member!";
 		return;
 	}
-	
+
 	# get member id
 	my $id;
 	if (ref($member) eq 'Net::SB::Member') {
@@ -93,11 +93,11 @@ sub delete_member {
 	else {
 		$id = $member;
 	}
-	if ($id !~ /^[a-z0-9\-]+\/[a-z0-9\-]+$/) {
+	if ($id !~ m/^ [a-z0-9\-]+ \/ [a-z0-9\-]+ $/x) {
 		carp "ID '$id' doesn't match expected pattern of lab-division/user-name";
 		return;
 	}
-	
+
 	# execute
 	my $url = sprintf "%s/members/%s", $self->href, $id;
 	return $self->execute('DELETE', $url); # this may not necessarily be true

@@ -7,7 +7,7 @@ use base 'Net::SB';
 
 sub new {
 	my ($class, $parent, $result) = @_;
-	
+
 	# create object based on the given result
 	# this is tricky, because the results will vary with different keys depending 
 	# on whether this is was called from a division or a project - sigh
@@ -23,13 +23,13 @@ sub new {
 	$self->{end}   = $parent->endpoint;
 	
 	# clean up some stuff due to inconsistencies in the API and the source of the result
-	if (exists $self->{username} and $self->{username} =~ /^([a-z0-9\-]+)\/([\w\-\.]+)$/) {
+	if (exists $self->{username} and $self->{username} =~ m/^( [a-z0-9\-]+ ) \/ ( [\w\-\.]+ ) $/x) {
 		my $div = $1;
 		my $name = $2;
 		$self->{id} = $self->{username}; # id is division/shortname
 		$self->{username} = $name;       # username is shortname
 	}
-	
+
 	return bless $self, $class;
 }
 
@@ -40,7 +40,7 @@ sub id {
 	}
 	elsif (exists $self->{username} and defined $self->{username}) {
 		# generate what should be the ID
-		return sprintf("%s/%s", $self->division, $self->name);
+		return (sprintf "%s/%s", $self->division, $self->name);
 	}
 	else {
 		return undef;
@@ -50,7 +50,7 @@ sub id {
 sub name {
 	my $self = shift;
 	if (exists $self->{first_name} and exists $self->{last_name}) {
-		return sprintf("%s %s", $self->{first_name}, $self->{last_name});
+		return (sprintf "%s %s", $self->{first_name}, $self->{last_name});
 	}
 	else {
 		return $self->username;
@@ -63,7 +63,7 @@ sub username {
 	if (exists $self->{username} and defined $self->{username}) {
 		return $self->{username};
 	}
-	elsif (exists $self->{id} and $self->{username} =~ /^[a-z0-9\-]+\/([\w\-]+)$/) {
+	elsif (exists $self->{id} and $self->{username} =~ m/^ [a-z0-9\-]+ \/ ( [\w\-]+ ) $/x) {
 		# extract it from the ID
 		return $1;
 	}

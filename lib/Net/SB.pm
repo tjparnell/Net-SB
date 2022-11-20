@@ -143,13 +143,13 @@ sub token {
 						# we've gone too far!!!??? start of next section
 						last;
 					}
-					elsif ($line2 =~ /^api_endpoint\s*=\s*(https:\/\/[\w\/\.\-]+)$/) {
+					elsif ($line2 =~ m/^api_endpoint \s* = \s* (https: \/ \/ [\w\/\.\-]+ )$/x) {
 						# we found the user's API endpoint
 						# go ahead and store it
 						print "> found endpoint: $1\n";
 						$self->endpoint($1);
 					}
-					elsif ($line2 =~ /^auth_token\s*=\s*(\w+)$/) {
+					elsif ($line2 =~ m/^auth_token \s *= \s* (\w+) $/x) {
 						# we found the user's token!
 						print "> found token\n";
 						$token = $1;

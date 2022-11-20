@@ -15,7 +15,7 @@ sub new {
 	if (ref($class)) {
 		$class = ref($class);
 	}
-	
+
 	my %args = @_;
 	my $self = {
 		div   => $args{div} || undef,
@@ -26,7 +26,7 @@ sub new {
 		verb  => $args{verbose},
 		end   => $args{end},
 	};
-	
+
 	return bless $self, $class;
 }
 
@@ -63,7 +63,7 @@ sub href {
 sub list_projects {
 	my $self = shift;
 	if (not exists $self->{projects}) {
-		my @results = $self->execute('GET', sprintf("%s/projects", $self->endpoint));
+		my @results = $self->execute('GET', (sprintf "%s/projects", $self->endpoint));
 		my @projects = map { Net::SB::Project->new($self, $_) } @results;
 		$self->{projects} = \@projects;
 	}
@@ -78,9 +78,9 @@ sub create_project {
 		return;
 	}
 	$options{billing_group} = $self->billing_group; # this may need to be requested
-	
+
 	# execute
-	my $result = $self->execute('POST', sprintf("%s/projects", $self->endpoint), 
+	my $result = $self->execute('POST', sprintf("%s/projects", $self->endpoint),
 		undef, \%options);
 	return $result ? Net::SB::Project->new($self, $result) : undef;
 }
@@ -92,7 +92,7 @@ sub get_project {
 		carp "project short name must be provided!";
 		return;
 	}
-	
+
 	# execute
 	my $url = sprintf "%s/projects/%s/%s", $self->endpoint, $self->id, $project;
 	my $result = $self->execute('GET', $url);
@@ -104,7 +104,6 @@ sub list_members {
 	if (not exists $self->{members}) {
 		my $url = sprintf "%s/users?division=%s", $self->endpoint, $self->id;
 		my @results = $self->execute('GET', $url);
-			
 		my @members = map { Net::SB::Member->new($self, $_) } @results;
 		$self->{members} = \@members;
 	}
@@ -114,7 +113,7 @@ sub list_members {
 sub billing_group {
 	my $self = shift;
 	if (not exists $self->{billing}) {
-		my @results = $self->execute('GET', sprintf("%s/billing/groups", $self->endpoint));
+		my @results = $self->execute('GET', (sprintf "%s/billing/groups", $self->endpoint));
 		if (scalar @results > 1) {
 			printf "More than one billing group associated with division! Using first one\n";
 		}
@@ -143,7 +142,7 @@ sub create_team {
 		name     => $name,
 		division => $self->division,
 	};
-	
+
 	# execute
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $result = $self->execute('POST', sprintf("%s/teams", $self->endpoint), $h, $data);
