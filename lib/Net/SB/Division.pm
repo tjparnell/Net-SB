@@ -18,13 +18,13 @@ sub new {
 
 	my %args = @_;
 	my $self = {
-		div   => $args{div} || undef,
-		name  => $args{name} || undef,
-		href  => $args{href} || undef,
-		cred  => $args{cred} || undef,
-		token => $args{token} || undef,
-		verb  => $args{verbose},
-		end   => $args{end},
+		div     => $args{div} || undef,   # 'hci-bioinformatics-shared-reso'
+		name    => $args{name} || undef,  # 'HCI Bioinformatics Shared Resource'
+		href    => $args{href} || undef,  # https://api.sbgenomics.com/v2/divisions/hci-bioinformatics-shared-reso
+		cred    => $args{cred} || undef,  # ~/.sevenbridges/credentials
+		token   => $args{token} || undef, # hexadecimal number
+		verb    => $args{verbose},        # 0 or 1
+		end     => $args{end},            # https://api.sbgenomics.com/v2
 	};
 
 	return bless $self, $class;

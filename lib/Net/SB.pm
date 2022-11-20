@@ -35,9 +35,9 @@ sub new {
 	my %args = @_;
 	my $division = $args{div} || $args{division} || $args{profile} || undef;
 	my $cred_path = $args{cred} || $args{cred_path} || $args{credentials} || undef;
-	my $token = $args{token} || undef;
-	my $verb = $args{verbose} || $args{verb} || 0;
-	my $endpoint = $args{endpoint} || 'https://api.sbgenomics.com/v2'; # default
+	my $token     = $args{token} || undef;
+	my $verb      = $args{verbose} || $args{verb} || 0;
+	my $endpoint  = $args{endpoint} || 'https://api.sbgenomics.com/v2'; # default
 	
 	# check for credentials file
 	if (defined $cred_path) {
@@ -55,7 +55,7 @@ sub new {
 		}
 	}
 	
-	# bless early
+	# bless early so we can get credentials and token as necessary
 	my $self = {
 		div     => $division,
 		cred    => $cred_path,
@@ -86,37 +86,74 @@ sub new {
 }
 
 sub credentials {
-	return shift->{cred};
+	if (exists $_[0]->{divobj}) {
+		# for inherited objects
+		return $_[0]->{divobj}->credentials;
+	}
+	else {
+		return $_[0]->{cred};
+	}
 }
 
 sub division {
-	# convenience generic method
-	return shift->{div} || undef;
+	if (exists $_[0]->{divobj}) {
+		# for inherited objects
+		return $_[0]->{divobj}->division;
+	}
+	else {
+		return $_[0]->{div} || undef;
+	}
 }
 
 sub endpoint {
 	my $self = shift;
-	if (@_) {
-		my $url = $_[0];
-		unless ($url =~ /^https:\/\//) {
-			croak "given API endpoint '$url' does not look like a URL!";
-		}
-		$url =~ s/\/$//; # remove trailing slash
-		$self->{end} = $url;
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->endpoint;
 	}
-	return $self->{end};
+	else {
+		if (@_) {
+			my $url = $_[0];
+			unless ($url =~ m/^ https: \/ \/ /x) {
+				croak "given API endpoint '$url' does not look like a URL!";
+			}
+			$url =~ s/\/$//; # remove trailing slash
+			$self->{end} = $url;
+		}
+		return $self->{end};
+	}
 }
 
 sub verbose {
 	my $self = shift;
-	if (@_) {
-		$self->{verb} = $_[0];
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->verbose;
 	}
-	return $self->{verb};
+	else {
+		if (@_) {
+			$self->{verb} = $_[0];
+		}
+		return $self->{verb};
+	}
+}
+	}
+	return $self->{partsz};
+}
+
+
+sub new_http {
+	my $h = HTTP::Tiny->new();
+	return $h;
 }
 
 sub token {
 	my $self = shift;
+	
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->token;
+	}
 	
 	# check token
 	unless (defined $self->{token}) {
@@ -146,12 +183,10 @@ sub token {
 					elsif ($line2 =~ m/^api_endpoint \s* = \s* (https: \/ \/ [\w\/\.\-]+ )$/x) {
 						# we found the user's API endpoint
 						# go ahead and store it
-						print "> found endpoint: $1\n";
 						$self->endpoint($1);
 					}
 					elsif ($line2 =~ m/^auth_token \s *= \s* (\w+) $/x) {
 						# we found the user's token!
-						print "> found token\n";
 						$token = $1;
 					}
 				}
@@ -341,21 +376,29 @@ sub list_divisions {
 	my $token = $self->token; 
 		# we don't actually need the token yet, but it will force reading credentials file
 		# and update the api endpoint in case it's different from the default value
-	my @items = $self->execute('GET', sprintf("%s/divisions", $self->endpoint), 
-		$options);
+	my $url = sprintf "%s/divisions", $self->endpoint;
+	my $items = $self->execute('GET', $url, $options);
 	my $cred = $self->credentials;
 	my $verb = $self->verbose;
 	my $end  = $self->endpoint;
-	my @divisions = map {
-		Net::SB::Division->new(
-			div     => $_->{id},
-			name    => $_->{name},
-			href    => $_->{href},
-			cred    => $cred,
-			verbose => $verb,
-			end     => $end,
-		);
-	} @items;
+	# there is a bug in their system with this call that messes with their paging 
+	# resulting in ten duplicates of everything, so need to discard duplicates
+	my @divisions;
+	my %seenit;
+	foreach (@{$items}) {
+		my $id = $_->{id};
+		next if exists $seenit{$id};
+		push @divisions, 
+			Net::SB::Division->new(
+				div     => $id,
+				name    => $_->{name},
+				href    => $_->{href},
+				cred    => $cred,
+				verbose => $verb,
+				end     => $end,
+			);
+		$seenit{$id} = 1;
+	}
 	
 	return wantarray ? @divisions : \@divisions;
 }

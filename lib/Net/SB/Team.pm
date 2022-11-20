@@ -14,14 +14,11 @@ sub new {
 		confess "Must call new() with a parsed JSON team result HASH!";
 	}
 	my $self = $result;
-	
-	# add items from parent
+
+	# add parent and name
+	$self->{divobj} = $parent; # should only be the division object
 	$self->{name}  = $name;
-	$self->{div}   = $parent->division;
-	$self->{token} = $parent->token;
-	$self->{verb}  = $parent->verbose;
-	$self->{end}   = $parent->endpoint;
-	
+
 	return bless $self, $class;
 }
 

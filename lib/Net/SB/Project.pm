@@ -14,13 +14,20 @@ sub new {
 		confess "Must call new() with a parsed JSON project result HASH!"
 	}
 	my $self = $result;
-	
-	# add items from parent
-	$self->{div}   = $parent->division;
-	$self->{token} = $parent->token;
-	$self->{verb}  = $parent->verbose;
-	$self->{end}   = $parent->endpoint;
-	
+	# typical structure
+	#   href => "https://api.sbgenomics.com/v2/projects/hci-bioinformatics-shared-reso/playground",
+	#   id => "hci-bioinformatics-shared-reso/playground",
+	#   name => "playground"
+	#   created_by => "hci-bioinformatics-shared-reso/tjparnell",
+	#   created_on => "2019-06-18T03:40:09Z",
+	#   modified_on => "2019-07-01T21:54:20Z",
+
+	# add division, which the parent should always be
+	$self->{divobj} = $parent;
+
+	# keep a hash of all folders encountered
+	$self->{dirs} = {};
+
 	return bless $self, $class;
 }
 
@@ -42,14 +49,18 @@ sub name {
 	return $self->{name};
 }
 
-sub details {
-	my $self = shift;
-	return $self->{details};
-}
-
 sub description {
 	my $self = shift;
-	return $self->{description};
+	# this may or may not be present, depending on how details were obtained
+	# if it was just created, we would have it, but not if we just listed from division
+	# could force to fetch more details
+	# also possible to update description if need be, but see update() below
+	return $self->{description} || undef;
+}
+
+sub root_folder {
+	my $self = shift;
+	return $self->{root_folder};
 }
 
 sub update {

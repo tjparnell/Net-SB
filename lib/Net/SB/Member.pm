@@ -15,13 +15,14 @@ sub new {
 		confess "Must call new() with a parsed JSON member result HASH!";
 	}
 	my $self = $result;
-	
-	# add items from parent
-	$self->{div}   = $parent->division;
-	$self->{token} = $parent->token;
-	$self->{verb}  = $parent->verbose;
-	$self->{end}   = $parent->endpoint;
-	
+
+	# add parent
+	if (ref $parent eq 'Net::SB::Division') {
+		$self->{divobj} = $parent; # 
+	}
+	else {
+		$self->{divobj} = $parent->{divobj};
+	}
 	# clean up some stuff due to inconsistencies in the API and the source of the result
 	if (exists $self->{username} and $self->{username} =~ m/^( [a-z0-9\-]+ ) \/ ( [\w\-\.]+ ) $/x) {
 		my $div = $1;
