@@ -226,9 +226,13 @@ sub execute {
 	my $result;
 	if ($response->{success}) {
 		# success is a 2xx http status code, decode results
-		$result = decode_json($response->{content});
+		$result = decode_json($response->{content}) if $response->{content};
 	}
 	elsif ($method eq 'GET' and $response->{status} eq '404') {
+		# we can interpret this as a possible acceptable negative answer
+		return;
+	}
+	elsif ($method eq 'GET' and $response->{status} eq '409') {
 		# we can interpret this as a possible acceptable negative answer
 		return;
 	}
@@ -237,6 +241,13 @@ sub execute {
 		printf "> DELETE request returned %s: %s\n", $response->{status}, 
 			$response->{reason};
 		return 1;
+	}
+	elsif ($response->{status} eq '429') {
+		# too many requests! rate limit exceeded
+		print STDERR " request limit hit - sleeping for 5 minutes\n";
+		sleep 300;
+		# repeat the request
+		return $self->execute($method, $url, $headers, $data);
 	}
 	elsif (exists $response->{reason} and $response->{reason} eq 'Internal Exception') {
 		confess "http request suffered an internal exception: $response->{content}";
@@ -281,6 +292,12 @@ sub execute {
 							last;
 						}
 					}
+				}
+				elsif ($res->{status} eq '429') {
+					# too many requests! rate limit exceeded
+					print STDERR " request limit hit - sleeping for 5 minutes\n";
+					sleep 300;
+					next;
 				}
 				else {
 					croak sprintf("Failure to get next items with URL %s\n A %s error occurred: %s: %s",
