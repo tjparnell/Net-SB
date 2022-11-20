@@ -208,6 +208,16 @@ sub modify_member_permission {
 	
 }
 
+sub bulk_upload_path {
+	my $self = shift;
+	croak "the sbg-upload.sh uploader is deprecated!";
+}
+
+sub bulk_upload {
+	my $self = shift;
+	croak "the sbg-upload.sh uploader is deprecated!";
+}
+
 1;
 
 __END__
