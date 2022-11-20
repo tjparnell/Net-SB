@@ -150,6 +150,101 @@ sub create_team {
 	return $result ? Net::SB::Team->new($self, $result) : undef;
 }
 
+sub bulk_delete {
+	my $self = shift;
+	# get the list of files
+	my @files;
+	if (scalar @_ == 1 and ref $_[0] eq 'ARRAY') {
+		my $a = shift @_;
+		@files = @{$a};
+	}
+	elsif (scalar @_ > 1) {
+		@files = @_;
+	}
+	else {
+		carp "Must pass array (reference) of files!";
+		return;
+	}
+
+	my $url = sprintf "%s/bulk/files/delete", $self->endpoint;
+	my $limit = $self->bulk_size;
+	my @outs;
+	my @folders;
+	my %lookup; # lookup of ID to array index
+
+	# process through the list
+	my $count = my $number = scalar @files;
+	my $i = 0;
+	while ($count) {
+		# collect file IDs
+		my @ids; # array of file IDs 
+		while ($i < $number) {
+			if ($files[$i]->type eq 'folder') {
+				# skip folders, but remember them later
+				push @folders, $files[$i];
+			}
+			elsif ($files[$i]->type eq 'file') {
+				my $id = $files[$i]->id;
+				push @ids, $id;
+				$lookup{$id} = $i;
+			}
+			$i++;
+			$count--;
+			last if scalar(@ids) == $limit;
+		}
+		# request
+		if (@ids) {
+			my $data = {
+				file_ids => \@ids,
+			};
+			my $results = $self->execute('POST', $url, undef, $data);
+			foreach my $r (@{$results}) {
+				if (exists $r->{error}) {
+					# problem
+					my $id = $r->{id} || undef;
+					my $j = $lookup{$id};
+					push @outs, sprintf "%s: %s %s", $r->{error}{code},
+						$r->{error}{message}, $files[$j]->pathname || undef;
+				}
+				else {
+					# evidently success
+					my $id = $r->{resource}{id};
+					my $j = $lookup{$id};
+					push @outs, sprintf "deleted %s", $files[$j]->pathname;
+				}
+			}
+		}
+	}
+
+	# check any folders
+	if (@folders) {
+		# first resort the folders, first by reverse depth then name
+		my @sortfolders =
+			map { $_->[0] }
+			sort { $b->[1] <=> $a->[1] or $a->[2] cmp $b->[2] }
+			map { [ $_, scalar(split /\//, $_->path), $_->path ] } @folders;
+
+		# then delete individually, can't do it in bulk because of nesting
+		while (@sortfolders) {
+			my $folder = shift @sortfolders;
+			my $contents = $folder->list_contents;
+			if (scalar @{$contents} == 0) {
+				my $result = $folder->delete;
+				if ($result and exists $result->{error}{code}) {
+					# likely an error
+					push @outs, sprintf "%s: %s %s", $result->{error}{code},
+						$result->{error}{message}, $folder->path || undef;
+				}
+				else {
+					# likely success
+					push @outs, sprintf "deleted empty folder %s", $folder->path;
+				}
+			}
+		}
+	}
+	return wantarray ? @outs : \@outs;
+}
+
 sub bulk_get_file_details {
 	my $self = shift;
 
