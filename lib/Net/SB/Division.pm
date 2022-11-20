@@ -149,6 +149,71 @@ sub create_team {
 	return $result ? Net::SB::Team->new($self, $result) : undef;
 }
 
+sub bulk_get_file_details {
+	my $self = shift;
+
+	# get the list of files
+	my @files;
+	if (scalar @_ == 1 and ref $_[0] eq 'ARRAY') {
+		my $a = shift @_;
+		@files = @{$a};
+	}
+	elsif (scalar @_ > 1) {
+		@files = @_;
+	}
+	else {
+		carp "Must pass array (reference) of files!";
+		return;
+	}
+
+	my $url = sprintf "%s/bulk/files/get", $self->endpoint;
+	my $limit = $self->bulk_size;
+	my %lookup; # lookup of ID to array index
+
+	# process through the list
+	my $count = my $number = scalar @files;
+	my $i = 0;
+	my $success = 0;
+	while ($count) {
+		# collect file IDs
+		my @ids; # array of file IDs 
+		while ($i < $number) {
+			my $f = $files[$i];
+			if ($f->type eq 'file') {
+				my $id = $f->id;
+				push @ids, $id;
+				$lookup{$id} = $f;
+			} # we skip any folder that may exist
+			$i++;
+			$count--;
+			last if scalar(@ids) == $limit;
+		}
+		# request
+		if (@ids) {
+			my $data = {
+				file_ids => \@ids,
+			};
+			my $results = $self->execute('POST', $url, undef, $data);
+			foreach my $r (@{$results}) {
+				if (exists $r->{error}) {
+					# print some kind of error message????
+				}
+				else {
+					my $id = $r->{resource}{id};
+					my $file = $lookup{$id};
+					# pass the results to the file object to integrate details
+					# into the existing object
+					$file->get_details( $r->{resource} );
+					$success++;
+				}
+			}
+		}
+	}
+	return $success;
+}
+
+1;
+
 __END__
 
 =head1 Net::SB::Division

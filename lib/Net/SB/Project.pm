@@ -3,8 +3,12 @@ package Net::SB::Project;
 use warnings;
 use strict;
 use Carp;
+use File::Spec;
+use File::Spec::Unix;
 use base 'Net::SB';
 use Net::SB::Member;
+use Net::SB::File;
+use Net::SB::Folder;
 
 sub new {
 	my ($class, $parent, $result) = @_;
@@ -198,12 +202,160 @@ sub modify_member_permission {
 	return $result;
 }
 
+sub list_contents {
 	my $self = shift;
+	my $url = sprintf "%s/files?offset=0&limit=100&project=%s", $self->endpoint,
+		$self->id;
+	my @results = $self->execute('GET', $url);
+
+	# process into file and folder objects
+	my @contents;
+	foreach my $f (@results) {
+		my $type = $f->{type};
+		if ($type eq 'file') {
+			push @contents, Net::SB::File->new($self, $f);
 		}
+		elsif ($type eq 'folder') {
+			my $folder = Net::SB::Folder->new($self, $f);
+			push @contents, $folder;
+			$self->{dirs}{$folder->path} = $folder; # remember
+		}
+		else {
+			carp sprintf "unknown object type '$type' for %s", $f->{name};
+		}
+	}
+	return wantarray ? @contents : \@contents;
+}
+
+sub recursive_list {
+	my $self = shift;
+	my $criteria = shift || undef;
+	my @files;
+
+	# recursively list all files
+	my $top = $self->list_contents;
+	while (@{$top}) {
+		my $item = shift @{$top};
+		if ($item->type eq 'file') {
+			# keep the file
+			push @files, $item;
+		}
+		else {
+			# recurse into the folder
+			push @files, $item;
+			my $contents = $self->_recurse($item);
+			push @files, @{$contents};
+		}
+	}
+
+	# filter the file list
+	if ($criteria) {
+		my @filtered = grep {$_->pathname =~ /$criteria/} @files;
+		return wantarray ? @filtered : \@filtered;
+	}
+	else {
+		return wantarray ? @files : \@files;
 	}
 }
 
-	my $self = shift;
+sub _recurse {
+	my ($self, $folder) = @_;
+	my @files;
+	my $contents = $folder->list_contents;
+	foreach my $item (@{$contents}) {
+		if ($item->type eq 'file') {
+			# keep the file
+			push @files, $item;
+		}
+		else {
+			# recurse into this subdirectory
+			push @files, $item;
+			my $contents2 = $self->_recurse($item);
+			push @files, @{$contents2};
+		}
+	}
+	return \@files;
+}
+
+sub get_file_by_name {
+	# this is a misnomer function
+	# we could be given either a file or a folder name, without knowing a priori what
+	# is - the API doesn't distinguish, and we can return either 
+	my ($self, $filepath) = @_;
+	return unless defined $filepath;
+	$filepath =~ s/(\/|\\)$//; # remove trailing slash, creates problems
+
+	# split the path, assuming unix - this may wreck havoc on DOS computers
+	my @bits = File::Spec::Unix->splitdir($filepath);
+	if (scalar @bits > 1) {
+		# more than one level
+		my $filename = pop @bits; # the last item, may not actually be a filename
+		# we will need to do a directory walk to find the parent
+		my $parent = $self; # start at the root
+		TREEWALK:
+		for my $d (0..$#bits) {
+			my $dir = $bits[$d];
+			my $dirpath = $dir;
+			if ($d > 0) {
+				# only concatenate if there is more than one
+				$dirpath = File::Spec::Unix->catdir(@bits[0..$d]);
+			}
+			# print ">> checking level $d for '$dirpath'\n";
+
+			# start looking for this directory
+			if (exists $self->{dirs}{$dirpath}) {
+				# we know about this one
+				# print "> found in object memory\n";
+				$parent = $self->{dirs}{$dirpath};
+				next TREEWALK;
+			}
+			else {
+				# need to check on the platform
+				# print ">> looking in parent for $dir\n";
+				my $folder = $parent->get_file_by_name($dir);
+				if ($folder) {
+					# this one exists on the platform
+					# print ">> found next folder\n";
+					$self->{dirs}{$dirpath} = $folder;
+					$parent = $folder;
+					next TREEWALK;
+				}
+				else {
+					# not found
+					# we can't go any further
+					# print ">> can't find next folder\n";
+					if ($d < $#bits) {
+						# there are more folders to go but we're stuck so bail
+						return;
+					}
+				}
+			}
+		}
+		# finished walking through the directory tree
+		# parent should be the final folder we want
+		# now look
+		# print ">> finished tree walk of full directory path\n";
+		return $parent->get_file_by_name($filename);
+	}
+
+	# otherwise assume file is at project root
+	my $url = sprintf "%s/files?project=%s&name=%s", $self->endpoint, $self->id, $filepath;
+	my @results = $self->execute('GET', $url);
+	if (scalar @results == 1) {
+		# there should only ever be one since there's no globbing
+		my $f = shift @results;
+		my $type = $f->{type};
+		if ($type eq 'file') {
+			return Net::SB::File->new($self, $f);
+		}
+		elsif ($type eq 'folder') {
+			return Net::SB::Folder->new($self, $f);
+		}
+		else {
+			carp sprintf "unknown object type '$type' for %s", $f->{name};
+		}
+	}
+	return;
 	
 	
 }
