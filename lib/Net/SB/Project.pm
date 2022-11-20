@@ -174,42 +174,14 @@ sub modify_member_permission {
 	return $result;
 }
 
-sub bulk_upload_path {
 	my $self = shift;
-	$self->{sbupload_path} ||= undef;
-	
-	# check for passed path
-	if (defined $_[0] and -e $_[0]) {
-		# assume it's good
-		$self->{sbupload_path} = $_[0];
-	}
-	
-	# look for one if not exists
-	if (!defined $self->{sbupload_path}) {
-		my $path = qx(which sbg-uploader.sh);
-		chomp $path;
-		if ($path) {
-			$self->{sbupload_path} = $path;
 		}
 	}
-	 
-	return $self->{sbupload_path};
 }
 
-sub bulk_upload {
 	my $self = shift;
-	my @options = @_;
 	
-	# Grab the token
-	my $token = $self->token;
 	
-	# execute
-	my $path = $self->bulk_upload_path or return 'sbg-upload.sh path not set!';
-	my $command = join(" ", $path, '--project', $self->id, '--token', 
-		$token, @options);
-	print " > executing: $command\n" if $self->verbose;
-	my $result = qx($command);
-	return $result;
 }
 
 1;
