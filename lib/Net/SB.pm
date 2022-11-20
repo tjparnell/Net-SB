@@ -293,16 +293,19 @@ sub execute {
 		# at least the list_divisions method returns a ton of duplicates - a bug?
 		# insert sanity check here as a general method, just in case the bug afflicts
 		# other things too
-		my %seenit;
-		my @keep;
-		foreach my $i (@items) {
-			next if exists $seenit{ $i->{href} };
-			$seenit{ $i->{href} } = 1;
-			push @keep, $i;
-		}
-		
-		# done
-		return wantarray ? @keep : \@keep;
+# 		my %seenit;
+# 		my @keep;
+# 		foreach my $i (@items) {
+# 			# the href URL should always be unique, so using that as unique key
+# 			my $h = $i->{href} || $i->{resource}{href};
+# 			next if exists $seenit{$h};
+# 			$seenit{$h} = 1;
+# 			push @keep, $i;
+# 		}
+# 		
+# 		# done
+# 		return wantarray ? @keep : \@keep;
+		return wantarray ? @items : \@items;
 	}
 	
 	# appears to be a single result, not a list
