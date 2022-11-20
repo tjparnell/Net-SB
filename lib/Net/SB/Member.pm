@@ -1,18 +1,18 @@
-package SB2::Member;
+package Net::SB::Member;
 
 
-=head1 SB2::Member
+=head1 Net::SB::Member
 
 Class object representing a Member on the Seven Bridges platform.
 
-See SB2 documentation for details.
+See Net::SB documentation for details.
 
 =cut
 
 
 use strict;
 use Carp;
-use base 'SB2';
+use base 'Net::SB';
 
 
 

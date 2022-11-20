@@ -1,19 +1,19 @@
-package SB2::Project;
+package Net::SB::Project;
 
 
-=head1 SB2::Project
+=head1 Net::SB::Project
 
 Class object representing a Project on the Seven Bridges platform.
 
-See SB2 documentation for details.
+See Net::SB documentation for details.
 
 =cut
 
 
 use strict;
 use Carp;
-use base 'SB2';
-use SB2::Member;
+use base 'Net::SB';
+use Net::SB::Member;
 
 1;
 
@@ -90,7 +90,7 @@ sub list_members {
 	unless ($self->{members}) {
 		my $url = $self->{href} . '/members';
 		my @results = $self->execute('GET', $url);
-		my @members = map { SB2::Member->new($self, $_) } @results; 
+		my @members = map { Net::SB::Member->new($self, $_) } @results; 
 		$self->{members} = \@members;
 	}
 	return wantarray ? @{ $self->{members} } : $self->{members};
@@ -115,11 +115,11 @@ sub add_member {
 	};
 	
 	# get member username
-	if (ref($member) eq 'SB2::Member') {
+	if (ref($member) eq 'Net::SB::Member') {
 		$data->{username} = $member->id; # must be longform username division/username
 		printf(" >> adding member id %s\n", $data->{name}) if $self->verbose;
 	}
-	elsif (ref($member) eq 'SB2::Team') {
+	elsif (ref($member) eq 'Net::SB::Team') {
 		$data->{username} = $member->id;
 		$data->{type} = 'TEAM';
 		printf(" >> adding team id %s\n", $data->{name}) if $self->verbose;
@@ -143,7 +143,7 @@ sub add_member {
 	# execute
 	my $url = $self->href . '/members';
 	my $result = $self->execute('POST', $url, undef, $data);
-	return $result ? SB2::Member->new($self, $result) : undef;
+	return $result ? Net::SB::Member->new($self, $result) : undef;
 }
 
 sub modify_member_permission {
@@ -161,11 +161,11 @@ sub modify_member_permission {
 	
 	# get member username
 	my $username;
-	if (ref($member) eq 'SB2::Member') {
+	if (ref($member) eq 'Net::SB::Member') {
 		$username = $member->id; # must be longform username division/username
 		printf(" >> updating member id %s\n", $username) if $self->verbose;
 	}
-	elsif (ref($member) eq 'SB2::Team') {
+	elsif (ref($member) eq 'Net::SB::Team') {
 		$username = $member->id;
 		printf(" >> updating team id %s\n", $username) if $self->verbose;
 	}

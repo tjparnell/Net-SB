@@ -1,9 +1,9 @@
-package SB2;
-our $VERSION = 5.2;
+package Net::SB;
+our $VERSION = 0.1;
 
 =head1 NAME
 
-SB2 - a Perl wrapper around the Seven Bridges API
+Net::SB - a Perl wrapper around the Seven Bridges API
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ API will likely break one or more methods here.
 
 =head1 METHODS
 
-=head2 SB2 Class
+=head2 Net::SB Class
 
 Main Class. This is inherited by all subclasses, so these functions 
 should be available everywhere. Start here.
@@ -43,7 +43,7 @@ Provide parameters as array:
     verbose  => 1, # default is 0
     end      => $endpoint, # API endpoint, default overriden by credential
 
-If a division is given, then a L<SB2::Division> object is immediately 
+If a division is given, then a L<Net::SB::Division> object is immediately 
 returned. Otherwise, a generic object is returned. Not much can be 
 done with a generic object, other than L<list_divisions>.
 
@@ -90,16 +90,16 @@ are parsed and returned as a hash. Be careful on what you expect.
 =item list_divisions
 
 Primarily for super admins. Lists all divisions for which you are a member. 
-Returns a list or array reference of L<SB2::Division> objects corresponding 
+Returns a list or array reference of L<Net::SB::Division> objects corresponding 
 to each division.
 
 
 =back
 
-=head2 SB2::Division
+=head2 Net::SB::Division
 
 Class object representing a lab division on the Seven Bridges platform. 
-This is generally not created independently, but inherited from a L<SB2> 
+This is generally not created independently, but inherited from a L<Net::SB> 
 object.
 
 The following methods are available.
@@ -120,12 +120,12 @@ The name of the division. May be different text from the short name identifier.
 
 =item list_projects
 
-Return list of available projects as L<SB2::Project> objects within current division.
+Return list of available projects as L<Net::SB::Project> objects within current division.
 Restricted to those that the current user can see. 
 
 =item create_project
 
-Make new project. Returns L<SB2::Project> object.
+Make new project. Returns L<Net::SB::Project> object.
 Pass array of information.
 
     name        => $name,
@@ -133,11 +133,11 @@ Pass array of information.
 
 =item get_project
 
-Given a short name identifier, return a L<SB2::Project> object for the project.
+Given a short name identifier, return a L<Net::SB::Project> object for the project.
 
 =item list_members
 
-Returns an array or array reference with a list of L<SB2::Members> objects 
+Returns an array or array reference with a list of L<Net::SB::Members> objects 
 for each member in the division.
 
 =item billing_group
@@ -147,11 +147,11 @@ Returns the C<ID> of the C<billing_group>.
 =item list_teams
 
 Returns a list of all the teams in the division, not necessarily those to which 
-the user is a member. Returns L<SB2::Team> objects. 
+the user is a member. Returns L<Net::SB::Team> objects. 
 
 =item create_team
 
-Pass the name of a new team to create. A L<SB2::Team> object will be returned
+Pass the name of a new team to create. A L<Net::SB::Team> object will be returned
 to which members will need to be added.
 
 =back
@@ -159,10 +159,10 @@ to which members will need to be added.
 
 
 
-=head2 SB2::Project Class
+=head2 Net::SB::Project Class
 
 Class object representing a Project in Seven Bridges. This is generally not 
-created independently, but inherited from a L<SB2::Division> object.
+created independently, but inherited from a L<Net::SB::Division> object.
 
 The following methods are available.
 
@@ -202,19 +202,19 @@ Returns 1 if successful. Object metadata is updated.
 
 =item list_members
 
-Returns list of L<SB2::Member> objects who are members of the current project.
+Returns list of L<Net::SB::Member> objects who are members of the current project.
 
 =item add_member
 
 Pass the member identifier, member's email address on the platform, 
-an L<SB2::Member> object, or an L<SB2::Team> object to 
+an L<Net::SB::Member> object, or an L<Net::SB::Team> object to 
 add to the project. Optionally, pass additional key =E<gt> value pairs to 
 set permissions. Default permissions are C<read> and C<copy> are C<TRUE>, 
 and C<write>, C<execute>, and C<admin> are C<FALSE>.
 
 =item modify_member_permission
 
-Pass the L<SB2::Member> (or L<SB2::Team>) object and an array of key =E<gt> value 
+Pass the L<Net::SB::Member> (or L<Net::SB::Team>) object and an array of key =E<gt> value 
 pairs to change the member's permissions for this project. Possible keys 
 include C<read>, C<copy>, C<write>, C<execute>, and C<admin>. Possible values 
 include C<TRUE> and C<FALSE>.
@@ -232,11 +232,11 @@ F<sbg-upload.sh> script and returns the standard out text results.
 
 =back
 
-=head2 SB2::Member Class
+=head2 Net::SB::Member Class
 
 Class object representing a member in Seven Bridges. This is generally not 
-created independently, but inherited from either an L<SB2::Division> or 
-L<SB2::Project> object. Depending upon the origin, the exact attributes may 
+created independently, but inherited from either an L<Net::SB::Division> or 
+L<Net::SB::Project> object. Depending upon the origin, the exact attributes may 
 vary, although some methods are munged to provide some level of consistency, 
 for example id and username.
 
@@ -312,11 +312,11 @@ Job execution permission for the Project.
 
 =back
 
-=head2 SB2::Team Class
+=head2 Net::SB::Team Class
 
 Class object representing a Team in Seven Bridges. This is generally not 
-created independently, but inherited from either an L<SB2::Division> or 
-L<SB2::Project> object. 
+created independently, but inherited from either an L<Net::SB::Division> or 
+L<Net::SB::Project> object. 
 
 =over 4
 
@@ -334,16 +334,16 @@ Returns the URL for this division.
 
 =item list_members
 
-Returns a list of L<SB2::Member> objects for all the members on the Team.
+Returns a list of L<Net::SB::Member> objects for all the members on the Team.
 
 =item add_member
 
-Provide a member ID or L<SB2::Member> object to add to the Team. No 
+Provide a member ID or L<Net::SB::Member> object to add to the Team. No 
 permissions are required.
 
 =item delete_member
 
-Provide the member ID or L<SB2::Member> object to remove from the Team.
+Provide the member ID or L<Net::SB::Member> object to remove from the Team.
 The return value may not necessarily be true. 
 
 =back
@@ -355,7 +355,7 @@ use Carp;
 use HTTP::Tiny;
 use JSON::PP;	# this is reliably installed, XS is not
 				# XS would be better performance, but we're not doing anything complicated
-use SB2::Division;
+use Net::SB::Division;
 
 
 
@@ -419,7 +419,7 @@ sub new {
 		unless (defined $token) {
 			$token = $self->token;
 		}
-		return SB2::Division->new(
+		return Net::SB::Division->new(
 			div     => $division,
 			cred    => $cred_path,
 			token   => $token,
@@ -659,7 +659,7 @@ sub execute {
 
 sub list_divisions {
 	my $self = shift;
-	return unless ref($self) eq 'SB2'; # this should not be accessible by inherited objects
+	return unless ref($self) eq 'Net::SB'; # this should not be accessible by inherited objects
 	my $options = {
 		'x-sbg-advance-access' => 'advance'
 	};
@@ -675,7 +675,7 @@ sub list_divisions {
 	my $verb = $self->verbose;
 	my $end  = $self->endpoint;
 	my @divisions = map {
-		SB2::Division->new(
+		Net::SB::Division->new(
 			div     => $_->{id},
 			name    => $_->{name},
 			href    => $_->{href},

@@ -1,11 +1,11 @@
-package SB2::Division;
+package Net::SB::Division;
 
 
-=head1 SB2::Division
+=head1 Net::SB::Division
 
 Class object representing a Division on the Seven Bridges platform.
 
-See SB2 documentation for details.
+See Net::SB documentation for details.
 
 =cut
 
@@ -14,10 +14,10 @@ use strict;
 use Carp;
 use IO::File;
 use File::Spec;
-use base 'SB2';
-use SB2::Project;
-use SB2::Member;
-use SB2::Team;
+use base 'Net::SB';
+use Net::SB::Project;
+use Net::SB::Member;
+use Net::SB::Team;
 
 1;
 
@@ -75,7 +75,7 @@ sub list_projects {
 	my $self = shift;
 	if (not exists $self->{projects}) {
 		my @results = $self->execute('GET', sprintf("%s/projects", $self->endpoint));
-		my @projects = map { SB2::Project->new($self, $_) } @results;
+		my @projects = map { Net::SB::Project->new($self, $_) } @results;
 		$self->{projects} = \@projects;
 	}
 	return wantarray ? @{ $self->{projects} } : $self->{projects};
@@ -93,7 +93,7 @@ sub create_project {
 	# execute
 	my $result = $self->execute('POST', sprintf("%s/projects", $self->endpoint), 
 		undef, \%options);
-	return $result ? SB2::Project->new($self, $result) : undef;
+	return $result ? Net::SB::Project->new($self, $result) : undef;
 }
 
 sub get_project {
@@ -107,7 +107,7 @@ sub get_project {
 	# execute
 	my $url = sprintf "%s/projects/%s/%s", $self->endpoint, $self->id, $project;
 	my $result = $self->execute('GET', $url);
-	return $result ? SB2::Project->new($self, $result) : undef;
+	return $result ? Net::SB::Project->new($self, $result) : undef;
 }
 
 sub list_members {
@@ -116,7 +116,7 @@ sub list_members {
 		my $url = sprintf "%s/users?division=%s", $self->endpoint, $self->id;
 		my @results = $self->execute('GET', $url);
 			
-		my @members = map { SB2::Member->new($self, $_) } @results;
+		my @members = map { Net::SB::Member->new($self, $_) } @results;
 		$self->{members} = \@members;
 	}
 	return wantarray ? @{ $self->{members} } : $self->{members};
@@ -139,7 +139,7 @@ sub list_teams {
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $url = sprintf "%s/teams?division=%s&_all=true", $self->endpoint, $self->division;
 	my @results = $self->execute('GET', $url, $h);
-	my @teams = map { SB2::Team->new($self, $_) } @results;
+	my @teams = map { Net::SB::Team->new($self, $_) } @results;
 	return wantarray ? @teams : \@teams;
 }
 
@@ -158,7 +158,7 @@ sub create_team {
 	# execute
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $result = $self->execute('POST', sprintf("%s/teams", $self->endpoint), $h, $data);
-	return $result ? SB2::Team->new($self, $result) : undef;
+	return $result ? Net::SB::Team->new($self, $result) : undef;
 }
 
 __END__

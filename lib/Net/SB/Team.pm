@@ -1,18 +1,18 @@
-package SB2::Team;
+package Net::SB::Team;
 
-=head1 SB2::Team
+=head1 Net::SB::Team
 
 Class object representing a Team on the Seven Bridges platform.
 
-See SB2 documentation for details.
+See Net::SB documentation for details.
 
 =cut
 
 
 use strict;
 use Carp;
-use base 'SB2';
-use SB2::Member;
+use base 'Net::SB';
+use Net::SB::Member;
 
 1;
 
@@ -55,7 +55,7 @@ sub list_members {
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $url = sprintf "%s/teams/%s/members", $self->endpoint, $self->{id};
 	my $results = $self->execute('GET', $url, $h);
-	my @members = map { SB2::Member->new($self, $_) } @$results;
+	my @members = map { Net::SB::Member->new($self, $_) } @$results;
 	return wantarray ? @members : \@members;
 }
 
@@ -69,7 +69,7 @@ sub add_member {
 	
 	# get member id
 	my $id;
-	if (ref($member) eq 'SB2::Member') {
+	if (ref($member) eq 'Net::SB::Member') {
 		$id = $member->id;
 	}
 	else {
@@ -97,7 +97,7 @@ sub delete_member {
 	
 	# get member id
 	my $id;
-	if (ref($member) eq 'SB2::Member') {
+	if (ref($member) eq 'Net::SB::Member') {
 		$id = $member->id;
 	}
 	else {
