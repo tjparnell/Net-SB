@@ -61,7 +61,7 @@ sub id {
 }
 
 sub project {
-	return shift->{id};
+	return shift->{project};
 }
 
 sub href {
