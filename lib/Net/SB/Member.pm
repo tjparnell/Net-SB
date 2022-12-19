@@ -30,6 +30,10 @@ sub new {
 		$self->{id} = $self->{username}; # id is division/shortname
 		$self->{username} = $name;       # username is shortname
 	}
+	elsif ( exists $self->{username} and $self->{username} ) {
+		my $id = sprintf "%s/%s", $parent->division, $self->{username};
+		$self->{id} = $id;
+	}
 
 	return bless $self, $class;
 }
@@ -41,7 +45,7 @@ sub id {
 	}
 	elsif (exists $self->{username} and defined $self->{username}) {
 		# generate what should be the ID
-		return (sprintf "%s/%s", $self->division, $self->name);
+		return $self->{username};
 	}
 	else {
 		return undef;
