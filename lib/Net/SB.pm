@@ -105,12 +105,13 @@ sub credentials {
 }
 
 sub division {
-	if (exists $_[0]->{divobj}) {
+	my $self = shift;
+	if (exists $self->{divobj}) {
 		# for inherited objects
-		return $_[0]->{divobj}->division;
+		return $self->{divobj}->division;
 	}
 	else {
-		return $_[0]->{div} || undef;
+		return $self->{div};
 	}
 }
 
@@ -194,42 +195,89 @@ sub token {
 		
 		# division
 		my $division = $self->division;
-		unless ($division) {
-			confess "no division is specified!?";
-		}
 		
 		# pull token
-		my $token;
+		my $token = q();
+		my $default_token = q();
+		my $default_endpoint = q();
 		my $fh = IO::File->new($cred_path) or 
 			die "unable to read credentials files!\n";
 		my $target = sprintf("[%s]", $division);
-		while (my $line = $fh->getline) {
+		my $line = $fh->getline;
+		while ($line) {
 			chomp $line;
 			if ($line eq $target) {
 				# we found the section!
-				while (my $line2 = $fh->getline) {
-					if ($line2 =~ m/^\[/) {
+				undef $line;
+				my $line2 = $fh->getline;
+				while ($line2) {
+					chomp $line2;
+					if ( $line2 =~ m/^ \[.+\] /x ) {
 						# we've gone too far!!!??? start of next section
-						last;
+						$line = $line2;
+						undef $line2;
 					}
 					elsif ($line2 =~ m/^api_endpoint \s* = \s* (https: \/ \/ [\w\/\.\-]+ )$/x) {
 						# we found the user's API endpoint
 						# go ahead and store it
 						$self->endpoint($1);
+						$line2 = $fh->getline;
 					}
 					elsif ($line2 =~ m/^auth_token \s *= \s* (\w+) $/x) {
 						# we found the user's token!
 						$token = $1;
+						$line2 = $fh->getline;
+					}
+					else {
+						$line2 = $fh->getline;
 					}
 				}
 			}
+			elsif ($line eq '[default]') {
+				# we found the default section
+				undef $line;
+				my $line2 = $fh->getline;
+				while ($line2) {
+					chomp $line2;
+					if ( $line2 =~ m/^ \[.+\] /x ) {
+						# we've gone too far!!!??? start of next section
+						$line = $line2;
+						undef $line2;
+					}
+					elsif ($line2 =~ m/^api_endpoint \s* = \s* (https: \/ \/ [\w\/\.\-]+ )$/x) {
+						# default fallback endpoint
+						$default_endpoint = $1;
+						$line2 = $fh->getline;
+					}
+					elsif ($line2 =~ m/^auth_token \s *= \s* (\w+) $/x) {
+						# fallback default token
+						$default_token = $1;
+						$line2 = $fh->getline;
+					}
+					else {
+						$line2 = $fh->getline;
+					}
+				}
+			}
+			else {
+				$line = $fh->getline || undef;
+			}
 		}
 		$fh->close;
-		unless ($token) {
-			# carp " unable to get token from credentials file for division $division!\n";
+		if ($token) {
+			$self->{token} = $token;
+		}
+		elsif ($default_token) {
+			print "  using default token for division '$division'\n";
+			$self->{token} = $default_token;
+			if ($default_endpoint) {
+				$self->endpoint($default_endpoint);
+			}
+		}
+		else {
+			carp "no token found!";
 			return;
 		}
-		$self->{token} = $token;
 	}
 	
 	return $self->{token};
