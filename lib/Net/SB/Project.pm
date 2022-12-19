@@ -35,6 +35,16 @@ sub new {
 	return bless $self, $class;
 }
 
+sub _get_details {
+	my $self = shift;
+	my $result = $self->execute('GET', $self->{href});
+	foreach my $key (keys %{$result}) {
+		unless ( exists $self->{$key} ) {
+			$self->{$key} = $result->{$key};
+		}
+	}
+}
+
 sub id {
 	return shift->{id};
 }
@@ -55,16 +65,80 @@ sub name {
 
 sub description {
 	my $self = shift;
-	# this may or may not be present, depending on how details were obtained
-	# if it was just created, we would have it, but not if we just listed from division
-	# could force to fetch more details
-	# also possible to update description if need be, but see update() below
+	unless ( exists $self->{description} ) {
+		$self->_get_details;
+	}
 	return $self->{description} || undef;
 }
 
 sub root_folder {
 	my $self = shift;
-	return $self->{root_folder};
+	unless ( exists $self->{root_folder} ) {
+		$self->_get_details;
+	}
+	my $id = $self->{root_folder};
+	my $data = {
+		'id'        => $id,
+		'href'      => sprintf("%s/files/%s", $self->endpoint, $id),
+		'name'      => q(),
+		'project'   => $self->id,
+		'type'      => 'folder',
+	};
+	return Net::SB::Folder->new($self, $data);
+}
+
+sub billing_group {
+	my $self = shift;
+	unless ( exists $self->{billing_group} ) {
+		$self->_get_details;
+	}
+	return $self->{billing_group};
+}
+
+sub created_by {
+	my $self = shift;
+	unless ( exists $self->{created_by} ) {
+		$self->_get_details;
+	}
+	my $id = $self->{created_by};
+	my $data = {
+		'id'        => $id,
+		'username'  => $id,
+		'href'      => sprintf("%s/members/%s", $self->{href}, $id),
+	};
+	return Net::SB::Member->new($self, $data);
+}
+
+sub created_on {
+	my $self = shift;
+	unless ( exists $self->{created_on} ) {
+		$self->_get_details;
+	}
+	return $self->{created_on};
+}
+
+sub modified_on {
+	my $self = shift;
+	unless ( exists $self->{modified_on} ) {
+		$self->_get_details;
+	}
+	return $self->{modified_on};
+}
+
+sub location {
+	my $self = shift;
+	unless ( exists $self->{location} ) {
+		$self->_get_details;
+	}
+	return $self->{location};
+}
+
+sub permissions {
+	my $self = shift;
+	unless ( exists $self->{permissions} ) {
+		$self->_get_details;
+	}
+	return $self->{permissions};
 }
 
 sub update {
