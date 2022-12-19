@@ -13,8 +13,8 @@ use Net::SB::Volume;
 
 sub new {
 	my $class = shift;
-	if (ref($class)) {
-		$class = ref($class);
+	if (ref $class) {
+		$class = ref $class;
 	}
 
 	my %args = @_;
@@ -26,6 +26,9 @@ sub new {
 		token   => $args{token} || undef, # hexadecimal number
 		verb    => $args{verbose},        # 0 or 1
 		end     => $args{end},            # https://api.sbgenomics.com/v2
+		partsz  => $args{partsz},
+		bulksz  => $args{bulksz},
+		napval  => $args{napval},
 	};
 
 	return bless $self, $class;

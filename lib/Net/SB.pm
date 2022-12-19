@@ -33,11 +33,14 @@ sub new {
 	
 	# arguments
 	my %args = @_;
-	my $division = $args{div} || $args{division} || $args{profile} || undef;
+	my $division  = $args{div} || $args{division} || $args{profile} || q();
 	my $cred_path = $args{cred} || $args{cred_path} || $args{credentials} || undef;
 	my $token     = $args{token} || undef;
 	my $verb      = $args{verbose} || $args{verb} || 0;
-	my $endpoint  = $args{endpoint} || 'https://api.sbgenomics.com/v2'; # default
+	my $partsize  = $args{partsize} || 32 * 1024 * 1024; # 32 MB
+	my $bulksize  = $args{bulksize} || 100;
+	my $sleep_val = $args{sleepvalue} || 60;
+	my $endpoint  = $args{endpoint} || 'https://api.sbgenomics.com/v2/'; # default
 	
 	# check for credentials file
 	if (defined $cred_path) {
@@ -61,6 +64,9 @@ sub new {
 		cred    => $cred_path,
 		verb    => $verb,
 		end     => $endpoint,
+		partsz  => $partsize,
+		bulksz  => $bulksize,
+		napval  => $sleep_val,
 	};
 	bless $self, $class;
 	
@@ -78,6 +84,9 @@ sub new {
 			name    => $args{name}, # just in case?
 			verbose => $verb,
 			end     => $self->endpoint,
+			partsz  => $partsize,
+			bulksz  => $bulksize,
+			napval  => $sleep_val,
 		);
 	}
 	else {
@@ -137,10 +146,33 @@ sub verbose {
 		return $self->{verb};
 	}
 }
+
+sub part_size {
+	my $self = shift;
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->{partsz};
 	}
 	return $self->{partsz};
 }
 
+sub bulk_size {
+	my $self = shift;
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->{bulksz};
+	}
+	return $self->{bulksz};
+}
+
+sub sleep_value {
+	my $self = shift;
+	if (exists $self->{divobj}) {
+		# for inherited objects
+		return $self->{divobj}->{napval};
+	}
+	return $self->{napval};
+}
 
 sub new_http {
 	my $h = HTTP::Tiny->new();
@@ -381,6 +413,9 @@ sub list_divisions {
 	my $cred = $self->credentials;
 	my $verb = $self->verbose;
 	my $end  = $self->endpoint;
+	my $partsize = $self->part_size;
+	my $bulksize = $self->bulk_size;
+	my $sleepval = $self->sleep_value;
 	# there is a bug in their system with this call that messes with their paging 
 	# resulting in ten duplicates of everything, so need to discard duplicates
 	my @divisions;
@@ -396,6 +431,9 @@ sub list_divisions {
 				cred    => $cred,
 				verbose => $verb,
 				end     => $end,
+				partsz  => $partsize,
+				bulksz  => $bulksize,
+				napval  => $sleepval,
 			);
 		$seenit{$id} = 1;
 	}
