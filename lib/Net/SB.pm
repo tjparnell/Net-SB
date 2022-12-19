@@ -334,22 +334,27 @@ sub execute {
 		confess "can't send http request!";
 	if ($self->verbose) {
 		printf" > Received %s %s\n > Contents: %s\n", $response->{status}, 
-			$response->{reason}, $response->{content};
+			$response->{reason}, $response->{content} || q();
 	}
 	
 	# check response
 	my $result;
 	if ($response->{success}) {
 		# success is a 2xx http status code, decode results
-		$result = decode_json($response->{content}) if $response->{content};
+		if ($response->{content}) {
+			$result = decode_json($response->{content}) ;
+		}
+		else {
+			return 1; # success
+		}
 	}
 	elsif ($method eq 'GET' and $response->{status} eq '404') {
 		# we can interpret this as a possible acceptable negative answer
-		return;
+		return 1;
 	}
 	elsif ($method eq 'GET' and $response->{status} eq '409') {
 		# we can interpret this as a possible acceptable negative answer
-		return;
+		return 1;
 	}
 	elsif ($method eq 'DELETE') {
 		# not sure what the status code for delete is, but it might be ok
@@ -368,9 +373,9 @@ sub execute {
 		confess "http request suffered an internal exception: $response->{content}";
 	}
 	else {
-		confess sprintf("A %s error occured: %s: %s", $response->{status}, 
+		carp sprintf("A %s error occured: %s: %s", $response->{status}, 
 			$response->{reason}, $response->{content});
-		return;
+		return 0;
 	}
 	
 	# check for items
