@@ -1,8 +1,8 @@
 package Net::SB::Folder;
 
 
+use warnings;
 use strict;
-use English qw(-no_match_vars);
 use Carp;
 use File::Spec;
 use File::Spec::Unix; # we pretend everything is unix based
@@ -55,7 +55,7 @@ sub id {
 }
 
 sub project {
-	return shift->{id};
+	return shift->{project};
 }
 
 sub href {
@@ -202,6 +202,120 @@ sub _recurse {
 		}
 	}
 	return \@files;
+}
+
+sub create_folder {
+	my ($self, $path) = @_;
+	return unless $path;
+	$path =~ s/\/|\\$//; # remove trailing slash, creates problems
+	my @dirs = File::Spec->splitdir($path);
+
+	if (scalar @dirs > 1) {
+		# making more than one directory at a time
+		# for simplicity and avoid code redundancy, just do this from the 
+		# project root directory
+		# there is a potential cost of code inefficiency here....
+		my $fullpath = File::Spec::Unix->catpath(
+			File::Spec::Unix->splitdir($self->path),
+			@dirs
+		);
+		return $self->{projobj}->create_folder($fullpath);
+	}
+	else {
+		# make a single directory in here
+		my $url = sprintf "%s/files", $self->endpoint;
+		my $data = {
+			'name'   => $path,
+			'type'   => 'folder',
+			'parent' => $self->id
+		};
+		my $result = $self->execute('POST', $url, undef, $data);
+		if ($result) {
+			my $folder = Net::SB::Folder->new($self, $result);
+			$self->{projobj}{dirs}{$folder->path} = $folder;
+			return $folder;
+		}
+		else {
+			carp "cannot make $path!";
+		}
+	}
+}
+
+sub upload_file {
+	my ($self, $target_filepath, $local_filepath, $overwrite) = @_;
+	return unless $target_filepath;
+	return unless ($local_filepath and -e $local_filepath);
+	unless (defined $overwrite) {
+		$overwrite = 0;
+	}
+	if ($self->verbose) {
+		printf " > upload local file '%s' to remote folder '%s' as '%s', overwriting %s\n",
+			$local_filepath, $self->name, $target_filepath, $overwrite ? 'Y' : 'N';
+	}
+
+	# first check for directory 
+	my (undef, $target_dir, $target_filename) = File::Spec->splitpath($target_filepath);
+	if ($target_dir) {
+		# user wants this in a folder that is under this one
+		# we cannot do that here, so need to redirect to parent object
+		# first make a full path, then forward on to project
+		my $full_path = File::Spec::Unix->catpath(
+			$self->path,
+			File::Spec->splitpath($target_dir),
+			$target_filename
+		);
+		return $self->{projobj}->upload_file($full_path, $local_filepath, $overwrite);
+	}
+
+	# check file size
+	unless (-e $local_filepath and -r _ ) {
+		carp " file '$local_filepath' cannot be read!";
+		return;
+	}
+	my @st = stat $local_filepath;
+	my $file_size = $st[7];
+
+	# check remote file
+	my $remote_file = $self->get_file_by_name($target_filename);
+	if ($remote_file) {
+		if ($overwrite) {
+			printf "  Overwriting remote file %s, size %d, modified on %s\n",
+				$local_filepath, $remote_file->size, $remote_file->modified;
+		}
+		else {
+			printf "  Skipping remote file %s, size %d, modified on %s\n",
+				$local_filepath, $remote_file->size, $remote_file->modified;
+			return;
+		}
+	}
+
+	# initialize upload
+	my $url = sprintf "%s/upload/multipart", $self->endpoint;
+	if ($overwrite) {
+		$url .= '?overwrite=true';
+	}
+	if ($self->verbose) {
+		my $p = $self->part_size;
+		printf "   >> Local file is %d bytes, will upload in %d parts of %d bytes\n",
+			$file_size, 
+			int( ($file_size + $p - 1) / $p ),
+			$p;
+	}
+	my $data = {
+		'parent'    => $self->id,
+		'name'      => $target_filename,
+		'size'      => $file_size,
+		'part_size' => $self->part_size
+	};
+	my $upload = $self->execute('POST', $url, undef, $data);
+	if ($upload) {
+		# pass off to generic uploader function
+		return $self->{projobj}->_upload_file($self, $local_filepath, $file_size, $upload);
+	}
+	else {
+		carp "error uploading!";
+		return;
+	}
 }
 
 sub delete {

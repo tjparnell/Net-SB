@@ -2,9 +2,11 @@ package Net::SB::Project;
 
 use warnings;
 use strict;
+use English qw(-no_match_vars);
 use Carp;
 use File::Spec;
 use File::Spec::Unix;
+use IO::File;
 use base 'Net::SB';
 use Net::SB::Member;
 use Net::SB::File;
@@ -437,8 +439,200 @@ sub get_file_by_name {
 		}
 	}
 	return;
+}
+
+sub create_folder {
+	my ($self, $path) = @_;
+	return unless defined $path;
+	$path =~ s/(\/|\\)$//; # remove trailing slash, creates problems
+
+	# check if it exists
+	if (exists $self->{dirs}{$path}) {
+		return $self->{dirs}{$path};
+	}
+
+	# check for multiple directories and act appropriately
+	my @dirs = File::Spec->splitdir($path);
+	if (scalar @dirs > 1) {
+		# walk through directory tree
+		my $parent;
+		my $check = 1;
+		TREEWALK:
+		for my $d (0..$#dirs) {
+			my $dir = $dirs[$d];
+			my $dirpath = $dir;
+			if ($d > 0) {
+				# only concatenate if there is more than one
+				$dirpath = File::Spec::Unix->catdir(@dirs[0..$d]);
+			}
+
+			# start looking for this directory
+			if (exists $self->{dirs}{$dirpath}) {
+				# we know about this one
+				$parent = $self->{dirs}{$dirpath};
+				next TREEWALK;
+			}
+			else {
+				# need to check on the platform
+				if ($parent and $check) {
+					my $folder = $parent->get_file_by_name($dir);
+					if ($folder) {
+						# this one exists on the platform
+						$self->{dirs}{$dirpath} = $folder;
+						$parent = $folder;
+						next TREEWALK;
+					}
+					else {
+						# we can't go looking deeper on the platform
+						# proceed to make this and any subsequent folders
+						$check = 0;
+					}
+				}
+
+				# we need to make this folder at the current level
+				my $folder;
+				if ($d == 0) {
+					# currently at project root level
+					my $url = sprintf "%s/files", $self->endpoint;
+					my $data = {
+						'name' => $dirs[$d],
+						'type' => 'folder',
+						'project' => $self->project
+					};
+					my $result = $self->execute('POST', $url, undef, $data);
+					if ($result) {
+						$folder = Net::SB::Folder->new($self, $result);
+						$self->{dirs}{$dirs[$d]} = $folder;
+					}
+				}
+				else {
+					# use current parent to make next folder
+					$folder = $parent->create_folder($dirs[$d]);
+				}
+				# continue with this folder
+				if ($folder) {
+					$parent = $folder; # new parent
+				}
+				else {
+					croak "problems making directory tree!";
+				}
+			}
+		}
+		# finished walking through the directory tree
+		# parent should be the final folder we want
+		return $parent;
+	}
+	else {
+		# we are making a single new folder at the root of the project
+		# check to see if it exists on platform
+		my $folder =  $self->get_file_by_name($path);
+		if ($folder) {
+			# it exists!
+			$self->{dirs}{$path} = $folder;
+			return $folder;
+		}
+		else {
+			# we need to make it
+			my $url = sprintf "%s/files", $self->endpoint;
+			my $data = {
+				'name' => $path,
+				'type' => 'folder',
+				'project' => $self->project
+			};
+			my $result = $self->execute('POST', $url, undef, $data);
+			if ($result) {
+				my $folder2 = Net::SB::Folder->new($self, $result);
+				$self->{dirs}{$path} = $folder2;
+				return $folder2;
+			}
+			else {
+				carp "problems making directory $path!";
+			}
+		}
+	}
+}
+
+sub upload_file {
+	my ($self, $target_filepath, $local_filepath, $overwrite) = @_;
+	unless ($target_filepath) {
+		carp " no target filepath provided!";
+		return;
+	}
+	unless ($local_filepath) {
+		carp " no local filepath provided!";
+		return;
+	}
+	$overwrite ||= 0;
+	if ($self->verbose) {
+		printf " > upload local file '%s' to project '%s' as '%s', overwriting %s\n",
+			$local_filepath, $self->name, $target_filepath, $overwrite ? 'Y' : 'N';
+	}
 	
-	
+	# check for directory
+	my (undef, $target_dir, $target_filename) = File::Spec->splitpath($target_filepath);
+	if ($target_dir) {
+		if ( exists $self->{dirs}{$target_dir} ) {
+			return $self->{dirs}{$target_dir}->upload_file($target_filename,
+				$local_filepath, $overwrite);
+		}
+		else {
+			my $folder = $self->create_folder($target_dir);
+			return $folder->upload_file($target_filename, $local_filepath, $overwrite);
+		}
+	}
+	else {
+		# uploading into root directory
+		
+		# check file size
+		unless (-e $local_filepath and -r _ ) {
+			carp " file '$local_filepath' cannot be read!";
+			return;
+		}
+		my @st = stat $local_filepath;
+		my $file_size = $st[7];
+		
+		# check remote file
+		my $remote_file = $self->get_file_by_name($target_filename);
+		if ($remote_file) {
+			if ($overwrite) {
+				printf "  Overwriting remote file '%s', size %d, modified on %s\n",
+					$target_filename, $remote_file->size, $remote_file->modified;
+			}
+			else {
+				printf "  Skipping remote file '%s', size %d, modified on %s\n",
+					$target_filename, $remote_file->size, $remote_file->modified;
+				return;
+			}
+		}
+
+		# initialize upload
+		my $url = sprintf "%s/upload/multipart", $self->endpoint;
+		if ($overwrite) {
+			$url .= '?overwrite=true';
+		}
+		my $data = {
+			'project'   => $self->id,
+			'name'      => $target_filename,
+			'size'      => $file_size,
+			'part_size' => $self->part_size
+		};
+		if ($self->verbose) {
+			my $p = $self->part_size;
+			printf "   >> Local file is %d bytes, will upload in %d parts of %d bytes\n",
+				$file_size, 
+				int( ($file_size + $p - 1) / $p ),
+				$p;
+		}
+		my $upload = $self->execute('POST', $url, undef, $data);
+		if ($upload) {
+			# pass off to generic uploader function
+			return $self->_upload_file($self, $local_filepath, $file_size, $upload);
+		}
+		else {
+			carp "error uploading!";
+			return;
+		}
+	}
 }
 
 sub bulk_upload_path {
@@ -450,6 +644,165 @@ sub bulk_upload {
 	my $self = shift;
 	croak "the sbg-upload.sh uploader is deprecated!";
 }
+
+sub _upload_file {
+	my ($self, $parent, $file_path, $file_size, $upload) = @_;
+	my $partsize = $self->part_size;
+	
+	# open file
+	my $fh = IO::File->new($file_path);
+	unless ($fh) {
+		carp "cannot open '$file_path'! $OS_ERROR";
+		return;
+	}
+	$fh->binmode;
+	
+	# Loop through file part uploads
+	my $http = $self->new_http;
+	my @part_responses;
+	my $retry_count = 0;
+	my $i = 1;
+	ITERATOR:
+	for (my $offset = 0; $offset <= $file_size; $offset += $partsize) {
+
+		# read current part of file
+		my $length;
+		if ( ($offset + $partsize) > $file_size) {
+			$length = $file_size - $offset;
+		}
+		else {
+			$length = $partsize;
+		}
+		$fh->read(my $string, $length);
+		my $content = {
+			content => $string
+		};
+
+		# get upload URL
+		my $data = {
+			'upload_id'     => $upload->{upload_id},
+			'part_number'   => $i,
+		};
+		my $url = sprintf "%s/upload/multipart/%s/part/%d", $self->endpoint, 
+			$upload->{upload_id}, $i;
+		my $upload_part = $self->execute('GET', $url, undef, $data);
+		if ($upload_part) {
+			# we have an upload URL
+			# this does not go through SBG API, so use direct http request
+			# loop through five retries
+			my $n = 0;
+			PART_LOOP:
+			while ($n < 5) {
+				if ($self->verbose) {
+					printf " > Submitting %d try for part %d: %s to %s\n", $n, $i,
+						$upload_part->{method}, $upload_part->{url};
+				}
+				# direct http request
+				my $result = $http->request(
+					$upload_part->{method},
+					$upload_part->{url},
+					$content
+				);
+				if ($result->{status} == 200 or $result->{status} == 201) {
+					# success!!!
+					if ($self->verbose) {
+						printf "  > %d success for attempt $n: ETag %s\n",
+							$result->{status},$result->{headers}{etag};
+					}
+					$result->{headers}{etag} =~ s/"//g; # it comes pre-quoted!!???
+					my $part_response = {
+						'part_number'   => $i,
+						'response'      => {
+							'headers'   => {
+								'ETag'  => $result->{headers}{etag},
+							}
+						}
+					};
+					push @part_responses, $part_response;
+					$n = 10;  # break out of this loop
+					last PART_LOOP;
+				}
+				else {
+					# failure
+					if ($self->verbose) {
+						printf "  > Failure for attempt $n: %s error %s: %s\n", 
+							$result->{status}, $result->{reason}, $result->{content};
+					}
+					$n++;
+					$retry_count++;
+					sleep 2; # sleep for a bit? then try again
+				}
+			}
+			
+			# check for too many failures
+			if ($n == 5) {
+				carp " too many failures uploading part $i for $file_path! Canceling!";
+				# send a cancel request
+				my $del_url = sprintf "%s/upload/multipart/%s", $self->endpoint, 
+					$upload->{upload_id};
+				$self->execute('DELETE', $del_url);
+				return;
+			}
+		}
+		else {
+			carp " could not request upload URL for part $i for $file_path!";
+			# send a cancel request
+			my $del_url = sprintf "%s/upload/multipart/%s", $self->endpoint, 
+				$upload->{upload_id};
+			$self->execute('DELETE', $del_url);
+			return;
+		}
+		
+		# this part succeeded
+		$i++;
+		
+		# check 
+		if (scalar @part_responses >= 25) {
+			# I don't know how many of these we can keep around, but we might as well
+			# not keep too many and report completed parts when we can
+			my $report_url = sprintf "%s/upload/multipart/%s", $self->endpoint, 
+				$upload->{upload_id};
+			my $report_data = {
+				'parts'         => \@part_responses,
+			};
+			my $response = $self->execute('POST', $report_url, undef, $report_data);
+			if ($response) {
+				@part_responses = ();
+			}
+		}
+	}
+	
+	# final report of completed parts
+	if (@part_responses) {
+		my $report_url = sprintf "%s/upload/multipart/%s", $self->endpoint, 
+			$upload->{upload_id};
+		my $report_data = {
+			'parts'         => \@part_responses,
+		};
+		my $response = $self->execute('POST', $report_url, undef, $report_data);
+	}
+	
+	# finalize upload
+	my $final_url = sprintf "%s/upload/multipart/%s/complete", $self->endpoint, 
+			$upload->{upload_id};
+	my $response = $self->execute('POST', $final_url);
+	if ($response) {
+		return Net::SB::File->new($parent, $response);
+	}
+	else {
+		print " ! failed to complete upload?? Try again\n";
+		sleep 10;
+		$response = $self->execute('POST', $final_url);
+		if ($response) {
+			return Net::SB::File->new($parent, $response);
+		}
+		else {
+			print " ! failed to complete upload!\n";
+			return;
+		}
+	}
+}
+
 
 1;
 
