@@ -361,6 +361,7 @@ sub get_file_by_name {
 
 	# split the path, assuming unix - this may wreck havoc on DOS computers
 	my @bits = File::Spec::Unix->splitdir($filepath);
+	# printf "  >> checking '%s' with %d bits\n", $filepath, scalar(@bits);
 	if (scalar @bits > 1) {
 		# more than one level
 		my $filename = pop @bits; # the last item, may not actually be a filename
@@ -374,12 +375,12 @@ sub get_file_by_name {
 				# only concatenate if there is more than one
 				$dirpath = File::Spec::Unix->catdir(@bits[0..$d]);
 			}
-			# print ">> checking level $d for '$dirpath'\n";
+			# print "  >> checking level $d for '$dirpath'\n";
 
 			# start looking for this directory
 			if (exists $self->{dirs}{$dirpath}) {
 				# we know about this one
-				# print "> found in object memory\n";
+				# print "  >> found in object memory\n";
 				$parent = $self->{dirs}{$dirpath};
 				next TREEWALK;
 			}
@@ -389,7 +390,7 @@ sub get_file_by_name {
 				my $folder = $parent->get_file_by_name($dir);
 				if ($folder) {
 					# this one exists on the platform
-					# print ">> found next folder\n";
+					# print "  >> found next folder\n";
 					$self->{dirs}{$dirpath} = $folder;
 					$parent = $folder;
 					next TREEWALK;
@@ -397,7 +398,7 @@ sub get_file_by_name {
 				else {
 					# not found
 					# we can't go any further
-					# print ">> can't find next folder\n";
+					# print "  >> can't find next folder\n";
 					if ($d < $#bits) {
 						# there are more folders to go but we're stuck so bail
 						return;
@@ -408,11 +409,17 @@ sub get_file_by_name {
 		# finished walking through the directory tree
 		# parent should be the final folder we want
 		# now look
-		# print ">> finished tree walk of full directory path\n";
+		# print "  >> finished tree walk of full directory path\n";
 		return $parent->get_file_by_name($filename);
 	}
 
 	# otherwise assume file is at project root
+	# first check in case it is a known directory
+	if (exists $self->{dirs}{$filepath}) {
+		# print "  >> found single path in object memory\n";
+		return $self->{dirs}{$filepath};
+	}
+	# then check remotely
 	my $url = sprintf "%s/files?project=%s&name=%s", $self->endpoint, $self->id, $filepath;
 	my @results = $self->execute('GET', $url);
 	if (scalar @results == 1) {
