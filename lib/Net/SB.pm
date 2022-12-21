@@ -327,7 +327,7 @@ sub execute {
 	
 	# send request
 	if ($self->verbose) {
-		printf " > Executing $method to $url\n";
+		carp sprintf " > Executing $method to $url";
 		if ($data) {printf "   data: %s\n", $options->{content}}
 	}
 	my $response = $http->request($method, $url, $options) or 
