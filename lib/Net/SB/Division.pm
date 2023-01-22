@@ -3,7 +3,6 @@ package Net::SB::Division;
 use warnings;
 use strict;
 use Carp;
-use IO::File;
 use File::Spec;
 use base 'Net::SB';
 use Net::SB::Project;
