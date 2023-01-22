@@ -12,13 +12,13 @@ our $VERSION = 0.1;
 
 
 # Initialize 
-# BEGIN {
-# 	# this is only for more recent versions, so disabled
-# 	# it will have to fail later if SSL stuff isn't available
-# 	unless (HTTP::Tiny->can_ssl) {
-# 		die "No SSL support installed. Please install Net::SSLeay and IO::Socket::SSL";
-# 	}
-# }
+BEGIN {
+	# this is only for more recent versions, so disabled
+	# it will have to fail later if SSL stuff isn't available
+	unless (HTTP::Tiny->can_ssl) {
+		die "No SSL support installed. Please install Net::SSLeay and IO::Socket::SSL";
+	}
+}
 my $http = HTTP::Tiny->new();
 
 1;
