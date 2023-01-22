@@ -233,8 +233,11 @@ sub bulk_delete {
 			my $contents = $folder->list_contents;
 			if (scalar @{$contents} == 0) {
 				my $result = $folder->delete;
-				if ($result and exists $result->{error}{code}) {
-					# likely an error
+				if ($result
+					and ref($result) eq 'HASH'
+					and exists $result->{error}{code}
+				) {
+					# an error
 					push @outs, sprintf "%s: %s %s", $result->{error}{code},
 						$result->{error}{message}, $folder->path || undef;
 				}
