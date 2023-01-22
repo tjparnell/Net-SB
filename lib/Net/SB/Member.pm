@@ -5,6 +5,8 @@ use strict;
 use Carp;
 use base 'Net::SB';
 
+our $VERSION = Net::SB->VERSION;
+
 sub new {
 	my ($class, $parent, $result) = @_;
 

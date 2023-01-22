@@ -6,6 +6,8 @@ use Carp;
 use base 'Net::SB';
 use Net::SB::Member;
 
+our $VERSION = Net::SB->VERSION;
+
 sub new {
 	my ($class, $parent, $result, $name) = @_;
 

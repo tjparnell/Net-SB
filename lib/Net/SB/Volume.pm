@@ -6,6 +6,8 @@ use File::Spec;
 use File::Spec::Unix; # we pretend everything is unix based
 use base 'Net::SB';
 
+our $VERSION = Net::SB->VERSION;
+
 # internal factors for checking
 my $adv_headers = {
 	'x-sbg-advance-access' => 'advance'

@@ -11,6 +11,8 @@ use Net::SB::Member;
 use Net::SB::Team;
 use Net::SB::Volume;
 
+our $VERSION = Net::SB->VERSION;
+
 sub new {
 	my $class = shift;
 	if (ref $class) {

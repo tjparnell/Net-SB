@@ -8,6 +8,8 @@ use File::Spec;
 use File::Spec::Unix; # we pretend everything is unix based
 use base 'Net::SB';
 
+our $VERSION = Net::SB->VERSION;
+
 sub new {
 	my ($class, $parent, $result) = @_;
 	# create object based on the given result

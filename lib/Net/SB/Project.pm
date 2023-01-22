@@ -12,6 +12,8 @@ use Net::SB::Member;
 use Net::SB::File;
 use Net::SB::Folder;
 
+our $VERSION = Net::SB->VERSION;
+
 sub new {
 	my ($class, $parent, $result) = @_;
 
