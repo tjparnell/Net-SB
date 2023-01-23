@@ -56,11 +56,17 @@ sub new {
 	my $parent_class = ref $parent;
 	if ($parent_class eq 'Net::SB::Folder') {
 		$self->{projobj} = $parent->{projobj};
-		$self->{path} = File::Spec::Unix->catfile($parent->path);
+		$self->{project} ||= $parent->{projobj}->id;
+		unless ( exists $self->{path} ) {
+			$self->{path} = File::Spec::Unix->catfile($parent->path);
+		}
 	}
 	elsif ($parent_class eq 'Net::SB::Project') {
 		$self->{projobj} = $parent;
-		$self->{path} = q();
+		$self->{project} ||= $parent->id;
+		unless ( exists $self->{path} ) {
+			$self->{path} = q();
+		}
 	}
 
 	return bless $self, $class;
