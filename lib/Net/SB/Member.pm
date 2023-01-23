@@ -109,12 +109,22 @@ sub email {
 
 sub first_name {
 	my $self = shift;
-	return $self->{first_name} || undef;
+	if (exists $self->{first_name}) {
+		return $self->{first_name};
+	}
+	else {
+		return undef;
+	}
 }
 
 sub last_name {
 	my $self = shift;
-	return $self->{last_name} || undef;
+	if (exists $self->{last_name}) {
+		return $self->{last_name};
+	}
+	else {
+		return undef;
+	}
 }
 
 sub type {
@@ -126,31 +136,56 @@ sub type {
 sub role {
 	# division attribute
 	my $self = shift;
-	return $self->{role} || undef;
+	if (exists $self->{role}) {
+		return $self->{role};
+	}
+	else {
+		return undef;
+	}
 }
 
 sub copy {
 	# project attribute
 	my $self = shift;
-	return $self->{permissions}{copy} || undef;
+	if (exists $self->{permissions}) {
+		return $self->{permissions}{copy} || undef;
+	}
+	else {
+		return undef;
+	}
 }
 
 sub write {
 	# project attribute
 	my $self = shift;
-	return $self->{permissions}{write} || undef;
+	if (exists $self->{permissions}) {
+		return $self->{permissions}{write} || undef;
+	}
+	else {
+		return undef;
+	}
 }
 
 sub read {
 	# project attribute
 	my $self = shift;
-	return $self->{permissions}{read} || undef;
+	if (exists $self->{permissions}) {
+		return $self->{permissions}{read} || undef;
+	}
+	else {
+		return undef;
+	}
 }
 
 sub exec {
 	# project attribute
 	my $self = shift;
-	return $self->{permissions}{exec} || undef;
+	if (exists $self->{permissions}) {
+		return $self->{permissions}{exec} || undef;
+	}
+	else {
+		return undef;
+	}
 }
 
 sub href {
