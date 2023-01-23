@@ -36,6 +36,14 @@ sub new {
 	#    project => "hci-bioinformatics-shared-reso/playground",
 	#    type => "folder"
 
+	# minimum data
+	unless (exists $self->{href} and exists $self->{id}) {
+		confess "Missing critical href and/or id keys!";
+	}
+	$self->{name}    ||= q();    # this should never be null
+	$self->{parent}  ||= q();
+	$self->{type}    ||= 'folder';
+	
 	# add parent and division information
 	$self->{divobj} = $parent->{divobj};
 	my $parent_class = ref $parent;

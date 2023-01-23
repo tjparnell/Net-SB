@@ -30,6 +30,12 @@ sub new {
 	#   created_on => "2019-06-18T03:40:09Z",
 	#   modified_on => "2019-07-01T21:54:20Z",
 
+	# minimum data
+	unless (exists $self->{href} and exists $self->{id}) {
+		confess "Missing critical href and/or id keys!";
+	}
+	$self->{name} ||= q();    # this should never be null
+	
 	# add division, which the parent should always be
 	$self->{divobj} = $parent;
 

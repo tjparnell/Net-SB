@@ -20,6 +20,12 @@ sub new {
 	# check if we have SBG result hash
 	if (ref $_[0] eq 'HASH' and exists $_[0]->{href}) {
 		my $self = shift @_;
+		# typical structure from a listing
+		#  {
+		#    href => "https://api.sbgenomics.com/v2/storage/volumes/division/hcibioinfo",
+		#    id => "division/hcibioinfo",
+		#    name => "hcibioinfo"
+		#  }
 		$self->{divobj} = $division;
 		return bless $self, $class;
 	}

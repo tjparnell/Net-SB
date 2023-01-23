@@ -15,8 +15,20 @@ sub new {
 	unless (defined $result and ref($result) eq 'HASH') {
 		confess "Must call new() with a parsed JSON team result HASH!";
 	}
+    # this is a typical result 
+    #   {
+    #     'name' => 'core',
+    #     'id' => '79400ce5-xxxx-4695-95dc-beba0ccd8c3a',
+    #     'href' => 'https://api.sbgenomics.com/v2/teams/79400ce5-xxxx-4695-95dc-beba0ccd8c3a'
+    #   }
 	my $self = $result;
 
+	# minimum data
+	unless (exists $self->{href} and exists $self->{id}) {
+		confess "Missing critical href and/or id keys!";
+	}
+	$self->{name}    ||= q();    # this should never be null
+	
 	# add parent and name
 	$self->{divobj} = $parent; # should only be the division object
 	$self->{name}  = $name;

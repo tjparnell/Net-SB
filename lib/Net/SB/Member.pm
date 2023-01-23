@@ -13,11 +13,34 @@ sub new {
 	# create object based on the given result
 	# this is tricky, because the results will vary with different keys depending 
 	# on whether this is was called from a division or a project - sigh
+	# this is from a project
+	#   {
+    #     'type' => 'USER',
+    #     'href' => 'https://api.sbgenomics.com/v2/projects/division/playground/members/division/tjparnell',
+    #     'id' => 'division/tjparnell',
+    #     'permissions' => {
+    #                        'read' => 1,
+    #                        'execute' => 1,
+    #                        'copy' => 1,
+    #                        'write' => 1,
+    #                        'admin' => 1
+    #                      },
+    #     'email' => 'xxxx.xxx@xxx.xxx.edu',
+    #     'username' => 'division/tjparnell'
+    #   },
 	unless (defined $result and ref($result) eq 'HASH') {
 		confess "Must call new() with a parsed JSON member result HASH!";
 	}
 	my $self = $result;
 
+	# minimum data
+	unless (exists $self->{href} and exists $self->{id}) {
+		confess "Missing critical href and/or id keys!";
+	}
+	$self->{type}     ||= 'USER';
+	$self->{username} ||= q();
+	$self->{email}    ||= q();
+	
 	# add parent
 	if (ref $parent eq 'Net::SB::Division') {
 		$self->{divobj} = $parent; # 
