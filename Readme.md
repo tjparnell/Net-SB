@@ -34,6 +34,15 @@ In addition, you will also need to generate your
 [Seven Bridges credentials file](https://docs.sevenbridges.com/docs/store-credentials-to-access-seven-bridges-client-applications-and-libraries) 
 with a developer tokens for your default division.
 
+Consequently, because of this requirement, the included tests are extremely limited and
+do not perform any network activity.
+
+## Implementation
+
+See the [HCI-Bio-Repository](https://github.com/HuntsmanCancerInstitute/hci-bio-repository)
+for a practical implementation, specifically the application script
+[sbg_project_manager](https://github.com/HuntsmanCancerInstitute/hci-bio-repository/blob/master/bin/sbg_project_manager.pl).
+
 
 # Installation
 
