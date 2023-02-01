@@ -178,7 +178,9 @@ sub list_members {
 	unless ($self->{members}) {
 		my $url = $self->{href} . '/members';
 		my @results = $self->execute('GET', $url);
-		my @members = map { Net::SB::Member->new($self, $_) } @results;
+		my @members =
+			map { Net::SB::Member->new($self, $_) }
+			grep { ref eq 'HASH' } @results;
 		$self->{members} = \@members;
 	}
 	return wantarray ? @{ $self->{members} } : $self->{members};

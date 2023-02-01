@@ -87,7 +87,12 @@ sub create_project {
 	# execute
 	my $result = $self->execute('POST', sprintf("%s/projects", $self->endpoint),
 		undef, \%options);
-	return $result ? Net::SB::Project->new($self, $result) : undef;
+	if ( ref($result) eq 'HASH' ) {
+		return Net::SB::Project->new($self, $result);
+	}
+	else {
+		return undef;
+	}
 }
 
 sub get_project {
@@ -101,7 +106,12 @@ sub get_project {
 	# execute
 	my $url = sprintf "%s/projects/%s/%s", $self->endpoint, $self->id, $project;
 	my $result = $self->execute('GET', $url);
-	return $result ? Net::SB::Project->new($self, $result) : undef;
+	if ( ref($result) eq 'HASH' ) {
+		return Net::SB::Project->new($self, $result);
+	}
+	else {
+		return undef;
+	}
 }
 
 sub list_members {
@@ -109,7 +119,9 @@ sub list_members {
 	if (not exists $self->{members}) {
 		my $url = sprintf "%s/users?division=%s", $self->endpoint, $self->id;
 		my @results = $self->execute('GET', $url);
-		my @members = map { Net::SB::Member->new($self, $_) } @results;
+		my @members =
+			map { Net::SB::Member->new($self, $_) }
+			grep { ref eq 'HASH' } @results;
 		$self->{members} = \@members;
 	}
 	return wantarray ? @{ $self->{members} } : $self->{members};
@@ -132,7 +144,9 @@ sub list_teams {
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $url = sprintf "%s/teams?division=%s&_all=true", $self->endpoint, $self->division;
 	my @results = $self->execute('GET', $url, $h);
-	my @teams = map { Net::SB::Team->new($self, $_) } @results;
+	my @teams =
+		map { Net::SB::Team->new($self, $_) }
+		grep { ref eq 'HASH' } @results;
 	return wantarray ? @teams : \@teams;
 }
 
@@ -151,7 +165,12 @@ sub create_team {
 	# execute
 	my $h = {'x-sbg-advance-access' => 'advance'};
 	my $result = $self->execute('POST', sprintf("%s/teams", $self->endpoint), $h, $data);
-	return $result ? Net::SB::Team->new($self, $result) : undef;
+	if ( ref($result) eq 'HASH' ) {
+		return Net::SB::Team->new($self, $result);
+	}
+	else {
+		return undef;
+	}
 }
 
 sub bulk_delete {
@@ -325,6 +344,7 @@ sub list_volumes {
 	if (@results) {
 		my @volumes;
 		foreach my $r (@results) {
+			next unless ref($r) eq 'HASH';
 			push @volumes, Net::SB::Volume->new($self, $r);
 		}
 		return wantarray ? @volumes : \@volumes;
