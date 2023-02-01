@@ -34,14 +34,15 @@ sub new {
 	my $self = $result;
 
 	# minimum data
-	unless (exists $self->{href} and exists $self->{id}) {
-		confess "Missing critical href and/or id keys!";
+	unless (exists $self->{href}) {
+		confess "Missing href! Is this a SB result hash!?";
 	}
+	$self->{id}       ||= q();
 	$self->{type}     ||= 'USER';
 	$self->{username} ||= q();
 	$self->{email}    ||= q();
 	
-	# add parent
+	# add division object
 	if (ref $parent eq 'Net::SB::Division') {
 		$self->{divobj} = $parent; # 
 	}
@@ -49,15 +50,15 @@ sub new {
 		$self->{divobj} = $parent->{divobj};
 	}
 	# clean up some stuff due to inconsistencies in the API and the source of the result
-	if (exists $self->{username} and $self->{username} =~ m/^( [a-z0-9\-]+ ) \/ ( [\w\-\.]+ ) $/x) {
+	# for example username and id
+	if ( $self->{username} =~ m/^( [a-z0-9\-]+ ) \/ ( [\w\-\.]+ ) $/x ) {
 		my $div = $1;
 		my $name = $2;
 		$self->{id} = $self->{username}; # id is division/shortname
 		$self->{username} = $name;       # username is shortname
 	}
-	elsif ( exists $self->{username} and $self->{username} ) {
-		my $id = sprintf "%s/%s", $parent->division, $self->{username};
-		$self->{id} = $id;
+	elsif ( $self->{username} ) {
+		$self->{id} = sprintf "%s/%s", $parent->division, $self->{username};
 	}
 
 	return bless $self, $class;
