@@ -33,7 +33,7 @@ sub new {
 	
 	# arguments
 	my %args = @_;
-	my $division  = $args{div} || $args{division} || $args{profile} || q();
+	my $division  = $args{div} || $args{division} || $args{profile} || undef;
 	my $cred_path = $args{cred} || $args{cred_path} || $args{credentials} || undef;
 	my $token     = $args{token} || undef;
 	my $verb      = $args{verbose} || $args{verb} || 0;
@@ -268,7 +268,7 @@ sub token {
 			$self->{token} = $token;
 		}
 		elsif ($default_token) {
-			print "  using default token for division '$division'\n";
+			print STDERR "  using default token for division '$division'\n";
 			$self->{token} = $default_token;
 			if ($default_endpoint) {
 				$self->endpoint($default_endpoint);
@@ -463,30 +463,29 @@ sub list_divisions {
 		# and update the api endpoint in case it's different from the default value
 	my $url = sprintf "%s/divisions", $self->endpoint;
 	my $items = $self->execute('GET', $url, $options);
-	my $cred = $self->credentials;
-	my $verb = $self->verbose;
-	my $end  = $self->endpoint;
-	my $partsize = $self->part_size;
-	my $bulksize = $self->bulk_size;
-	my $sleepval = $self->sleep_value;
-	# there is a bug in their system with this call that messes with their paging 
-	# resulting in ten duplicates of everything, so need to discard duplicates
+		# there is a bug in their system with this call that messes with their paging 
+		# resulting in ten duplicates of everything, so need to identify and discard
+		# duplicates
 	my @divisions;
 	my %seenit;
 	foreach (@{$items}) {
+		next unless (ref eq 'HASH');
 		my $id = $_->{id};
 		next if exists $seenit{$id};
+		
+		# create a new division object for each result
+		# copy values to the division object with the exception of token and endpoint
+		# since these may be different
 		push @divisions, 
 			Net::SB::Division->new(
 				div     => $id,
 				name    => $_->{name},
 				href    => $_->{href},
-				cred    => $cred,
-				verbose => $verb,
-				end     => $end,
-				partsz  => $partsize,
-				bulksz  => $bulksize,
-				napval  => $sleepval,
+				cred    => $self->credentials,
+				verbose => $self->verbose,
+				partsz  => $self->part_size,
+				bulksz  => $self->bulk_size,
+				napval  => $self->sleep_value,
 			);
 		$seenit{$id} = 1;
 	}
