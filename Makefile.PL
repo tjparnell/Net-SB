@@ -14,7 +14,7 @@ WriteMakefile(
 		'IO::File'          => 0,
 		'File::Spec'        => 0,
 		'List::Util'        => 1.45,
-		'HTTP::Tiny'        => 0.076,
+		'HTTP::Tiny'        => 0.077,
 		'IO::Socket::SSL'   => 2.071,
 		'JSON::PP'          => 0,
 	},
