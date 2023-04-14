@@ -646,16 +646,6 @@ sub upload_file {
 	}
 }
 
-sub bulk_upload_path {
-	my $self = shift;
-	croak "the sbg-upload.sh uploader is deprecated!";
-}
-
-sub bulk_upload {
-	my $self = shift;
-	croak "the sbg-upload.sh uploader is deprecated!";
-}
-
 sub _upload_file {
 	my ($self, $parent, $file_path, $file_size, $upload) = @_;
 	my $partsize = $self->part_size;
