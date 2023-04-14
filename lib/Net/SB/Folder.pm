@@ -108,6 +108,22 @@ sub parent_obj {
 	}
 }
 
+sub created_on {
+	my $self = shift;
+	unless ( exists $self->{created_on} ) {
+		$self->_get_details;
+	}
+	return $self->{created_on};
+}
+
+sub modified_on {
+	my $self = shift;
+	unless ( exists $self->{modified_on} ) {
+		$self->_get_details;
+	}
+	return $self->{modified_on};
+}
+
 sub list_contents {
 	my $self = shift;
 	my $url = sprintf "%s/list?offset=0&limit=100", $self->href;

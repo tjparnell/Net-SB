@@ -129,7 +129,7 @@ sub get_details {
 	return 1;
 }
 
-sub created {
+sub created_on {
 	my $self = shift;
 	unless (exists $self->{created_on}) {
 		$self->get_details;
@@ -137,7 +137,7 @@ sub created {
 	return $self->{created_on};
 }
 
-sub modified {
+sub modified_on {
 	my $self = shift;
 	unless (exists $self->{modified_on}) {
 		$self->get_details;
