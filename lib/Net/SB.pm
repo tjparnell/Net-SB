@@ -327,13 +327,15 @@ sub execute {
 	
 	# send request
 	if ($self->verbose) {
-		carp sprintf " > Executing $method to $url";
-		if ($data) {printf "   data: %s\n", $options->{content}}
+		printf " > Executing $method to %s\n", $url;
+		if ($data) {
+			printf "   data: %s\n", $options->{content};
+		}
 	}
 	my $response = $http->request($method, $url, $options) or 
 		confess "can't send http request!";
 	if ($self->verbose) {
-		printf" > Received %s %s\n > Contents: %s\n", $response->{status}, 
+		printf " > Received %s %s\n > Contents: %s\n", $response->{status}, 
 			$response->{reason}, $response->{content} || q();
 	}
 	
