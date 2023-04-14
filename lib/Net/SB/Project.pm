@@ -432,7 +432,8 @@ sub get_file_by_name {
 		return $self->{dirs}{$filepath};
 	}
 	# then check remotely
-	my $url = sprintf "%s/files?project=%s&name=%s", $self->endpoint, $self->id, $filepath;
+	my $url = sprintf "%s/files?project=%s&name=%s", $self->endpoint, $self->id,
+		$self->_encode($filepath);
 	my @results = $self->execute('GET', $url);
 	if (scalar @results == 1) {
 		# there should only ever be one since there's no globbing

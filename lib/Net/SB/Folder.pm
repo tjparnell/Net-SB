@@ -147,7 +147,7 @@ sub get_file_by_name {
 	else {
 		# looking for file in this path
 		my $url = sprintf "%s/files?parent=%s&name=%s", $self->endpoint, $self->id,
-			$filename;
+			$self->_encode($filename);
 		my @results = $self->execute('GET', $url);
 		if (scalar @results == 1) {
 			# there should only ever be one since there's no globbing

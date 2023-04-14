@@ -495,6 +495,12 @@ sub list_divisions {
 	return wantarray ? @divisions : \@divisions;
 }
 
+sub _encode {
+	my ( $self, $value ) = @_;
+	$value =~ s/( [%&\=;,\ \#] ) /sprintf("%%%X", ord($1) )/xge;
+	return $value;
+}
+
 1;
 
 __END__
