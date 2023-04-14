@@ -809,11 +809,147 @@ sub _upload_file {
 
 __END__
 
-=head1 Net::SB::Project
+=head1 Net::SB::Project - a Project on the Seven Bridges platform
 
-Class object representing a Project on the Seven Bridges platform.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This represents a project on the Seven Bridges platform. It may be generated 
+from the following L<Net::SB::Division> methods:
+
+* L<Net::SB::Division/list_projects> 
+
+* L<Net::SB::Division/get_project>
+
+* L<Net::SB::Division/create_project>
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+Generally this object should only be initialized from a L<Net::SB::Division> 
+object and not directly by end-users. It requires returned JSON data from the 
+Seven Bridges API and parent object information.
+
+=item id
+
+The identifier, or short name, of the project.
+
+=item project
+
+Same as L<id>.
+
+=item href
+
+Returns the URL for this project.
+
+=item name
+
+The human name of the project, which may be different text from the short identifier. 
+
+=item description
+
+Gets the description of the project. Can be set by passing text to L<update>.
+
+=item root_folder
+
+Returns a L<Net::SB::Folder> object representing the root folder of the project.
+
+=item billing_group
+
+Returns the billing group id.
+
+=item created_by
+
+Returns a L<Net::SB::Member> object of the member who created the project.
+
+=item created_on
+
+Returns the C<created_on> value.
+
+=item modified_on
+
+Returns the C<modified_on> value.
+
+=item location
+
+Returns the C<location> value of where the file is hosted, such as C<us-east-1>.
+
+=item permissions
+
+Returns a hash of the permissions that the current user (you) have with the project.
+
+=item update
+
+Pass an array of key =E<gt> value pairs of information to update the project.
+Returns 1 if successful. Object metadata is updated.
+
+    name        => $new_name,
+    description => $text, # can be Markdown
+
+=item list_members
+
+Returns list of L<Net::SB::Member> objects who are members of the current project.
+
+=item add_member
+
+Pass the member identifier, member's email address on the platform, 
+an L<Net::SB::Member> object, or an L<Net::SB::Team> object to 
+add to the project. Optionally, pass additional key =E<gt> value pairs to 
+set permissions. Default permissions are C<read> and C<copy> are C<TRUE>, 
+and C<write>, C<execute>, and C<admin> are C<FALSE>.
+
+=item modify_member_permission
+
+Pass the L<Net::SB::Member> (or L<Net::SB::Team>) object and an array of key =E<gt> value 
+pairs to change the member's permissions for this project. Possible keys 
+include C<read>, C<copy>, C<write>, C<execute>, and C<admin>. Possible values 
+include C<TRUE> and C<FALSE>.
+
+=item list_contents
+
+List all files and folders at the root level of the project. Does not recurse.
+Returns an array or array reference of L<Net::SB::File> and L<Net::SB::Folder> 
+objects as appropriate.
+
+=item recursive_list
+
+=item recursive_list($regex)
+
+Recursively list all file and folders within the project, recursing into folders
+as necessary until everything is found. Optionally pass a Perl regular
+expression as an argument for filtering the found objects based on their
+pathname, i.e. folders plus filename. Returns an array or array reference of
+L<Net::SB::File> and L<Net::SB::Folder> objects as appropriate.
+
+=item get_file_by_name($filepath)
+
+Provide a file path, either a filename in the root folder, or with folder path. 
+The file is searched for by recursing as necessary into each folder. If the file 
+(or folder) is found, it is returned as an appropriate object.
+
+=item create_folder($new_folder_name)
+
+Pass a folder or path of multiple folders. The folder is first searched for on 
+the platform, and if not found, is generated. Intermediate folders are generated 
+as necessary. A L<Net::SB::Folder> object is returned.
+
+=item upload_file($remote_filepath, $local_filepath, $overwrite)
+
+Pass two or three parameters. 
+
+* The first is the remote file path, including folder(s) and file name, 
+in the Project.
+
+* The second is the local file path of the file to be uploaded.  
+
+* The third is an optional boolean value to overwrite the file. The default is false.
+
+Intermediate folders, if present, are searched for and if necessary generated. 
+
+=back
+
 
 =head1 AUTHOR
 

@@ -199,11 +199,99 @@ sub href {
 
 __END__
 
-=head1 Net::SB::Member
+=head1 Net::SB::Member - a Member on the Seven Bridges platform
 
-Class object representing a Member on the Seven Bridges platform.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This represents a member on the Seven Bridges platform. It may be generated 
+by listing methods from either a L<Net::SB::Project>, L<Net::SB::Division>,
+or L<Net::SB::Team> object. 
+
+* L<Net::SB::Division/list_members> 
+
+* L<Net::SB::Project/list_members> 
+
+* L<Net::SB::Project/add_member> 
+
+* L<Net::SB::Team/list_members> 
+
+* L<Net::SB::Team/add_member> 
+
+Due to slight variations in the Seven Bridges API and where the 
+member object was generated, the metadata and identifiers for the member may 
+vary. Best attempts are made to normalize these values.
+
+This is generally a read-only object. Modifications to permissions may be done 
+though the Project object.
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+Generally this object should only be initialized from another object and not 
+directly by end-users. It requires returned JSON data from the Seven Bridges 
+API and parent object information.
+
+=item id
+
+Returns the user ID, which is usually C<division/shortname>.
+
+=item href
+
+Returns the URL for this member.
+
+=item username
+
+Returns the short user name of the user.
+
+=item email
+
+Returns the associated email address of the user as a string.
+
+=item name
+
+If available, returns a string as "First Last". Otherwise returns the 
+short user name.
+
+=item first_name
+
+Returns first name of user. May not be present.
+
+=item last_name
+
+Returns the last name. May not be present.
+
+=item type
+
+Returns C<ADMIN> or C<USER> depending on context and the 
+origin of the member object. 
+
+=item role
+
+Returns C<MEMBER> or C<ADMIN> value, usually in the context of 
+membership in a Project. This may not be present in all cases.
+
+=item read
+
+Returns the boolean value for the Read permission of the user, usually for a Project.
+For most users, this is true.
+
+=item copy
+
+Returns the boolean value for the Copy permission of the user, usually for a Project. 
+For most users, this is true.
+
+=item write
+
+Returns the boolean value for the Write permission of the user, usually for a Project.
+
+=item exec
+
+Returns the boolean value for the task Execution permission of the user, usually for a Project.
+
+=back
 
 =head1 AUTHOR
 

@@ -374,11 +374,127 @@ sub attach_volume {
 
 __END__
 
-=head1 Net::SB::Division
+=head1 Net::SB::Division - A division on the Seven Bridges platform
 
-Class object representing a Division on the Seven Bridges platform.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This represents a laboratory or user division which contains one or 
+more projects. This is essentially the starting point to projects.
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+Generally this object should only be initialized from the L<Net::SB> 
+new() function, and not directly by end-users.
+
+=item id
+
+The identifier, or short name, for this division.
+
+=item href
+
+Returns the URL for this division.
+
+=item name
+
+The name of the division. May be different text from the short name identifier.
+
+=item list_projects
+
+Return list of available projects as L<Net::SB::Project> objects within current division.
+Restricted to those that the current user can see. 
+
+=item create_project
+
+Make new project. Returns L<Net::SB::Project> object.
+Pass array of information.
+
+    name        => $name,
+    description => $description, # can be Markdown
+
+=item get_project
+
+Given a short name identifier, return a L<Net::SB::Project> object for the project.
+
+=item list_members
+
+Returns an array or array reference with a list of L<Net::SB::Members> objects 
+for each member in the division.
+
+=item billing_group
+
+Returns the C<ID> of the C<billing_group>. 
+
+=item list_teams
+
+Returns a list of all the teams in the division, not necessarily those to which 
+the user is a member. Returns L<Net::SB::Team> objects. 
+
+=item create_team
+
+Pass the name of a new team to create. A L<Net::SB::Team> object will be returned
+to which members will need to be added.
+
+=item bulk_delete
+
+Pass an array or array reference of L<Net::SB::File> file objects. These 
+will be deleted via a bulk API call. Returns an array of message strings 
+of success or failure which can be printed to a user.
+
+=item bulk_get_file_details
+
+Pass an array or array reference of L<Net::SB::File> file objects. A bulk API 
+call will be made to collect additional file details, and the file objects 
+will be updated with the additional details. Useful for efficiently getting 
+metadata or file sizes. The number of successful files updated will be returned.
+
+=item list_volumes
+
+Returns a list of L<Net::SB::Volume> objects representing any mounted remote 
+volume, such as an AWS bucket, attached to the division.
+
+=item get_volume
+
+Pass the name of a known volume and the corresponding L<Net::SB::Volume> object
+will be returned, if available. A little faster than manually listing and 
+searching for the volume of interest. 
+
+=item attach_volume
+
+Convenience method for attaching a new volume by passing an array of key =E<gt> 
+value pairs of connection values. Currently this only support AWS S3 buckets. 
+Values include the following:
+
+=over 4
+
+=item type 
+
+Provide either C<s3> or C<gcs> for AWS buckets or Google Cloud Storage.
+
+=item bucket
+
+The name of the bucket
+
+=item access
+
+Provide either C<RO> or C<RW> for read-only or read-write access. Default is "RO".
+
+=item access_key_id
+
+The S3 access key identifier.
+
+=item secret_access_key
+
+The S3 secret access key identifier.
+
+=back
+
+If successful it will return a L<Net::SB::Volume> object.
+
+=back
 
 =head1 AUTHOR
 

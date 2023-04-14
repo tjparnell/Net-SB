@@ -225,11 +225,119 @@ sub delete {
 
 __END__
 
-=head1 Net::SB::File
+=head1 Net::SB::File - a File on the Seven Bridges platform.
 
-Class object representing a File on the Seven Bridges platform.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This represents a file on the Seven Bridges platform. It may be generated 
+by listing methods from either a L<Net::SB::Project> or L<Net::SB::Folder>.
+
+* L<Net::SB::Project/list_contents> 
+
+* L<Net::SB::Project/recursive_list>
+
+* L<Net::SB::Project/upload_file>
+
+* L<Net::SB::Folder/list_contents> 
+
+* L<Net::SB::Folder/recursive_list>
+
+* L<Net::SB::Folder/upload_file>
+
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+Generally this object should only be initialized from a L<Net::SB::Project> or
+L<Net::SB::Folder> object and not directly by end-users. It requires returned
+JSON data from the Seven Bridges API and parent object information.
+
+=item id
+
+The hexadecimal identifier of the file.
+
+=item project
+
+Returns the name of the project to which this file belongs.
+
+=item href
+
+Returns the URL for this file.
+
+=item name
+
+The human name of the folder. 
+
+=item type
+
+Always returns C<file>.
+
+=item path
+
+Returns the full path of the parent folder, including upstream folders.
+
+=item pathname
+
+Returns the full path of the file, including upstream folders, and the file name.
+
+=item parent_id
+
+Returns the id of the parent folder.
+
+=item parent_obj
+
+Returns the stored object of the parent.
+
+=item get_details
+
+Makes an API call to collect additional data on the file object, including 
+size, dates, and metadata. A parsed JSON result hash may be provided as the 
+first argument from which to collect the extra information. 
+
+=item created_on
+
+Returns the C<created_on> value.
+
+=item modified_on
+
+Returns the C<modified_on> value.
+
+=item size
+
+Returns the size of the file as in integer in bytes.
+
+=item metadata
+
+Returns a reference to the metadata hash of key =E<gt> value metadata values.
+
+=item file_status
+
+Returns the location of where the file is stored, for example C<aws:us-east-1> 
+for active storage on AWS S3. If the file is an imported file linked to an 
+attached volume, the name of the volume is returned. Folders and archived 
+files usually return C<Platform>. Anything else is returned as C<unknown>.
+
+=item add_metadata(\%metadata)
+
+Pass a reference to a metadata hash with the values to provide. If adding 
+to existing metadata, first retrieve the metadata hash, make the changes, 
+then call add_metadata().
+
+=item download_link
+
+Generates a download URL for downloading the file. This requires the file to be 
+on active storage and neither archived nor linked from a storage volume. 
+Returns the URL as a string. If a URL cannot be generated, nothing is returned 
+without error, and the user should assume the file is unavailable for download.
+
+=item delete
+
+Delete this file from the platform.
+
+=back
 
 =head1 AUTHOR
 

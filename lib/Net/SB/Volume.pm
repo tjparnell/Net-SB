@@ -396,13 +396,145 @@ sub export_files {
 
 1;
 
-=head1 Net::SB::Volume
+=head1 Net::SB::Volume - an attached volume on the Seven Bridges platform
 
-Class object representing an attached volume on the Seven Bridges platform. 
-Currently only supporting attached AWS buckets. This should be called from a 
-Net::SB:Division object.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This object represents an attached volume to a Division, such as an AWS S3 
+bucket. 
+
+The Seven Bridges API supports Google Cloud Storage, but this is currently 
+not implemented. Only AWS buckets are currently supported.
+
+Typically volumes should be attached manually through the web interface or 
+though other means. There is rudimentary support here for attaching here.
+
+Volume objects can be generated using methods from the L<Net::SB::Division> 
+object.
+
+* L<Net::SB::Division/list_volumes>
+
+* L<Net::SB::Division/get_volume>
+
+* L<Net::SB::Division/attach_volume>
+
+
+=head1 METHODS
+
+=item new
+
+Generally this object should only be initialized from a L<Net::SB::Division> 
+object and not directly by end-users. It requires returned JSON data from the 
+Seven Bridges API and parent object information.
+
+=item id
+
+Returns the volume ID, usually C<division/volume-name>.
+
+=item name
+
+Returns the volume name.
+
+=item href
+
+Returns the URL for the volume.
+
+=item get_details
+
+Fetches additional details on the attached volume. This is done automatically when 
+certain other methods are called.
+
+=item mode
+
+Returns a string, either C<RO> or C<RW> representing read-only or read-write, 
+for the access mode of the volume.
+
+=item service
+
+This returns a hash reference of additional details on the volume, such as the
+service provider, bucket, endpoint, dates, etc. 
+
+=item active
+
+Returns a boolean value to indicate whether the volume is active or not.
+
+=item activate
+
+Activates the volume, allowing it to be used.
+
+=item deactivate
+
+Deactivates the volume, preventing it from being used. 
+
+=item list_files
+
+Lists the files on the volume. Not implemented yet.
+
+=item import_files
+
+Imports files from the volume into the Project. Not implemented yet.
+
+=item export_files(@options)
+
+Provide an array of key =E<gt> value pairs for exporting files from the platform 
+onto the volume. By default, files are copied to the volume and a link to the 
+copied file on the volume is made in the original location, allowing it to be 
+subsequently used, so far as the volume remains attached.
+
+The volume must be read-write (C<RW>) mode and active.
+
+The option keys include the following:
+
+=over 4
+
+=item files
+
+An array reference of L<Net::SB::File> objects representing the files to be 
+exported. This is required.
+
+=item prefix
+
+A string representing the folder path in the volume into which the files will be
+exported. This is to precede the current pathname of the file(s) to be copied.
+The existing pathname of the file(s) to be copied is always preserved. The
+default value is C<null>, meaning the files will be copied starting at the root 
+folder of the volume. 
+
+=item copy
+
+A boolean value (1 or 0) indicating whether the file should be B<copied only>. 
+A true value means the file will be copied without linking back. A false value 
+means the file will be copied and a link to it made in the original place. The 
+default is false.
+
+=item overwrite
+
+A boolean value (1 or 0) indicating what will happen when a file with the same path,
+name, and prefix already exists at the destination in the volume. A true value 
+means the file will be overwritten. A false value means the file will be skipped. 
+The default value is false.
+
+=back
+
+Since this process occurs asynchronously, the module will query the status of 
+the copy periodically until it is complete. The L<Net::SB/sleep_value> value, 
+set up when L<Net::SB> was initialized, is used to sleep the program between 
+checks. After each query, progress reports are printed to C<STDERR> indicating 
+the number of pending, running, completed, and failed file copies for each batch.
+
+A hash reference is returned upon completion. Each key is a file ID and points 
+to an anonymous hash of information, as indicated below:
+
+    file_id  => {
+        status      => $status,          # COMPLETED or FAILED
+        error       => $error_message,   # if present
+        transfer_id => $transfer_id,
+        source      => $source_pathname,
+        destination => $destination_pathname
+    }
+
+=back
+
 
 =head1 AUTHOR
 

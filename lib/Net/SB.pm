@@ -509,14 +509,51 @@ __END__
 
 Net::SB - a Perl wrapper around the Seven Bridges API
 
+=head1 SYNOPSIS
+
+    use Net::SB;
+    
+    # normal usage starts with a division
+
+    my $Division = Net::SB->new(
+      division => $division_name
+    );  # returns a Net::SB::Division object
+    
+    my @projects = $Division->list_projects;
+       # returns list of Net::SB::Project objects
+    
+    my @members  = $Division->list_members;
+       # returns list of Net::SB::Member objects
+    
+    
+    # otherwise there is very limited functionality
+    # with a plain object
+    my $sb = Net::SB->new();
+    
+    # print every http request and response
+    $sb->verbose(1);
+    
+    # default root url endpoint, this may change with division
+    my $url = $sb->endpoint;
+    
+    # manual request when doing something unusual
+    my $result = $sb->execute('GET', $url, $headers, $data);
+    
+    # list all divisions, for enterprise admins only
+    my @division_list = $sb->list_divisions;
+    
+    
+
 =head1 DESCRIPTION
 
 This is a simplified Perl wrapper around the Seven Bridges v2 
 L<API|https://docs.sevenbridges.com/reference>.
  
 This is not a comprehensive implementation of the full API in its 
-entirety. There are limitations, and primarily includes only the 
-functionality that is most relevant to the scripts in this package.
+entirety. The package primarily focuses on file, project, and member 
+management, useful to administrators. It especially allows working 
+with files in bulk, something not currently feasible with their 
+provided command line tool.
 
 This requires a Developer token to access your Seven Bridges account. 
 A Developer token must be generated through the Seven Bridges website.
@@ -528,32 +565,75 @@ L<credentials documentation|https://docs.sevenbridges.com/docs/store-credentials
 Many of the base URL paths are hard coded. Changes in the Seven Bridges 
 API will likely break one or more methods here.
 
+
+
 =head1 METHODS
 
-=head2 Net::SB Class
+Net::SB is the main Class. This is inherited by all subclasses, so all of these 
+functions should be available everywhere. Start here.
 
-Main Class. This is inherited by all subclasses, so these functions 
-should be available everywhere. Start here.
+In general, all work begins at the Division level and proceeds to a Project, 
+where the majority of work is done. All other objects, including projects, 
+members, teams, folders, files, and volumes, are generated via method calls 
+starting from here.
 
 =over 4
 
 =item new
 
-Provide parameters as array:
+Initialize a new object. Usually a division name is provided here and a 
+L<Net::SB::Division> object is immediately returned. Otherwise, not much 
+can be done with a generic object, other than L<list_divisions>.
 
-    division => $division, 
-    cred     => $credential_path, # default ~/.sevenbridges/credentials
-    token    => $token, # if known or to overide credential file
-    verbose  => 1, # default is 0
-    end      => $endpoint, # API endpoint, default overriden by credential
+Provide parameters as an array of key =E<gt> value pairs. Optional keys 
+include the following:
 
-If a division is given, then a L<Net::SB::Division> object is immediately 
-returned. Otherwise, a generic object is returned. Not much can be 
-done with a generic object, other than L<list_divisions>.
+=over 4
+
+=item division
+
+Name of the division to immediately open. 
+
+=item cred cred_path credentials
+
+Provide the local path to your Seven Bridges credentials path, default
+ is F<~/.sevenbridges/credentials>. Your access token is obtained 
+from this file based on the division name you provided.
+
+=item token
+
+Provide the actual token if known or to overide the value in 
+your credential file.
+
+=item endpoint
+
+Provide the API endpoint if it is not in the credential file. 
+Default is C<https://api.sbgenomics.com/v2/>.
+
+=item verbose
+
+Provide a true (1) or false (0) value to print every https request
+and response. Primarily for debugging purposes.
+
+=item partsize
+
+Specify the upload file part size in bytes (integer). The default 
+is equivalent to 32 MB.
+
+=item bulksize
+
+Specify the number of items to provide in bulk API queries, default 100.
+
+=item sleepvalue
+
+Specify the number of seconds to sleep before checking a result for bulk 
+or asynchronous API calls. The default is 60 seconds.
+
+=back
 
 =item credentials
 
-Return the credentials file path
+Return the credentials file path. 
 
 =item division
 
@@ -574,6 +654,26 @@ overridden by the C<api_endpoint> tag in the credentials file.
 
 Sets and returns verbosity boolean value: 1 is true, 0 is false.
 
+=item part_size
+
+Returns the upload file part size in bytes.
+
+=item bulk_size
+
+Returns the number of items to include in bulk API calls.
+
+=item sleep_value
+
+=item new_http
+
+Convenience method to return a brand new L<HTTP::Tiny> object.
+
+=item token
+
+Returns the token for the current division. If it has not been 
+fetched yet, it will open and parse the credentials file and 
+extract the token.
+
 =item execute($method, $url, \%header_options, \%data)
 
 Main function for executing an API C<https> request. Most users shouldn't 
@@ -586,271 +686,20 @@ items. The division token is automatically supplied here and isn't necessary.
 Second, a hash reference of additional data content to be provided for 
 C<POST> submissions. 
 
-All results are returned as JSON and parsed into Perl objects. When expecting 
-lists of results, e.g. member or project lists, these are parsed and placed 
-into an array and returned as an array or array reference. Non-list results 
-are parsed and returned as a hash. Be careful on what you expect. 
+All results are returned from Seven Bridges as JSON and is parsed into Perl
+objects. When expecting lists of results, e.g. member or project lists, these
+are parsed and placed into an array and returned as an array or array reference.
+Non-list results are parsed and returned as a hash. Be B<very> careful on what
+you expect. 
 
 =item list_divisions
 
-Primarily for super admins. Lists all divisions for which you are a member. 
-Returns a list or array reference of L<Net::SB::Division> objects corresponding 
-to each division.
-
-
-=back
-
-=head2 Net::SB::Division
-
-Class object representing a lab division on the Seven Bridges platform. 
-This is generally not created independently, but inherited from a L<Net::SB> 
-object.
-
-The following methods are available.
-
-=over 4
-
-=item id
-
-The identifier, or short name, for this division.
-
-=item href
-
-Returns the URL for this division.
-
-=item name
-
-The name of the division. May be different text from the short name identifier.
-
-=item list_projects
-
-Return list of available projects as L<Net::SB::Project> objects within current division.
-Restricted to those that the current user can see. 
-
-=item create_project
-
-Make new project. Returns L<Net::SB::Project> object.
-Pass array of information.
-
-    name        => $name,
-    description => $description, # can be Markdown
-
-=item get_project
-
-Given a short name identifier, return a L<Net::SB::Project> object for the project.
-
-=item list_members
-
-Returns an array or array reference with a list of L<Net::SB::Members> objects 
-for each member in the division.
-
-=item billing_group
-
-Returns the C<ID> of the C<billing_group>. 
-
-=item list_teams
-
-Returns a list of all the teams in the division, not necessarily those to which 
-the user is a member. Returns L<Net::SB::Team> objects. 
-
-=item create_team
-
-Pass the name of a new team to create. A L<Net::SB::Team> object will be returned
-to which members will need to be added.
+Primarily for Enterprise super admins. Lists all divisions for which you are a
+member. Returns a list or array reference of L<Net::SB::Division> objects
+corresponding to each division.
 
 =back
 
-
-
-
-=head2 Net::SB::Project Class
-
-Class object representing a Project in Seven Bridges. This is generally not 
-created independently, but inherited from a L<Net::SB::Division> object.
-
-The following methods are available.
-
-=over 4
-
-=item id
-
-The identifier, or short name, of the project.
-
-=item project
-
-Same as L<id>.
-
-=item href
-
-Returns the URL for this division.
-
-=item name
-
-The name of the project, which may be different text from the short identifier. 
-
-=item description
-
-Gets the description of the project. Can set by passing text to L<update>.
-
-=item details
-
-Return a hash reference to additional details about a project.
-
-=item update
-
-Pass array of information to update the project.
-Returns 1 if successful. Object metadata is updated.
-
-    name        => $new_name,
-    description => $text, # can be Markdown
-
-=item list_members
-
-Returns list of L<Net::SB::Member> objects who are members of the current project.
-
-=item add_member
-
-Pass the member identifier, member's email address on the platform, 
-an L<Net::SB::Member> object, or an L<Net::SB::Team> object to 
-add to the project. Optionally, pass additional key =E<gt> value pairs to 
-set permissions. Default permissions are C<read> and C<copy> are C<TRUE>, 
-and C<write>, C<execute>, and C<admin> are C<FALSE>.
-
-=item modify_member_permission
-
-Pass the L<Net::SB::Member> (or L<Net::SB::Team>) object and an array of key =E<gt> value 
-pairs to change the member's permissions for this project. Possible keys 
-include C<read>, C<copy>, C<write>, C<execute>, and C<admin>. Possible values 
-include C<TRUE> and C<FALSE>.
-
-=item bulk_upload_path($path)
-
-Sets or returns the path to F<sbg-uploader.sh>, the shell script used to start 
-the Java executable. It will automatically be searched for in the environment 
-F<PATH> if not provided.
-
-=item bulk_upload(@options)
-
-Automatically handles setting the division, project, and token. Executes the 
-F<sbg-upload.sh> script and returns the standard out text results.
-
-=back
-
-=head2 Net::SB::Member Class
-
-Class object representing a member in Seven Bridges. This is generally not 
-created independently, but inherited from either an L<Net::SB::Division> or 
-L<Net::SB::Project> object. Depending upon the origin, the exact attributes may 
-vary, although some methods are munged to provide some level of consistency, 
-for example id and username.
-
-=over 4
-
-=item id
-
-This should return C<my-division/rfranklin>, despite the member origin.
-
-=item name
-
-Returns the given name of the member. If the first and last names are 
-indicated in the metadata, then "First Last" is returned. Otherwise, the 
-username is returned.
-
-=item username
-
-This should return C<rfranklin>, despite the member origin. Some sources 
-include division, and some don't, as the user name.
-
-=item email
-
-This should be included from both Division and Project origins.
-
-=item href
-
-Returns the URL for the member.
-
-=back
-
-
-The following attributes should be available from Division-derived members.
-
-=over 4
-
-=item username
-
-=item role
-
-Returns C<MEMBER>, C<ADMIN>, etc. 
-
-=item first_name
-
-=item last_name
-
-=item email
-
-=back
-
-These attributes should be available from Project-derived members.
-
-=over 4
-
-=item type
-
-Returns C<USER>, C<ADMIN>, etc.
-
-=item read
-
-Read permission for the Project.
-
-=item copy
-
-Copy permission for the Project.
-
-=item write
-
-Write permission for the Project.
-
-=item exec
-
-Job execution permission for the Project.
-
-=back
-
-=head2 Net::SB::Team Class
-
-Class object representing a Team in Seven Bridges. This is generally not 
-created independently, but inherited from either an L<Net::SB::Division> or 
-L<Net::SB::Project> object. 
-
-=over 4
-
-=item id
-
-The identifier, or short name, of the Team.
-
-=item name
-
-The name of the Team. 
-
-=item href
-
-Returns the URL for this division.
-
-=item list_members
-
-Returns a list of L<Net::SB::Member> objects for all the members on the Team.
-
-=item add_member
-
-Provide a member ID or L<Net::SB::Member> object to add to the Team. No 
-permissions are required.
-
-=item delete_member
-
-Provide the member ID or L<Net::SB::Member> object to remove from the Team.
-The return value may not necessarily be true. 
-
-=back
 
 =head1 AUTHOR
 

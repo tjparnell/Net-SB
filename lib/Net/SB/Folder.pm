@@ -360,11 +360,121 @@ sub delete {
 
 __END__
 
-=head1 Net::SB::Folder
+=head1 Net::SB::Folder - a Folder on the Seven Bridges platform
 
-Class object representing a Folder on the Seven Bridges platform.
+=head1 DESCRIPTION
 
-See Net::SB documentation for details.
+This represents a folder on the Seven Bridges platform. It may be generated 
+from the following L<Net::SB::Project> methods:
+
+* L<Net::SB::Project/list_contents> 
+
+* L<Net::SB::Project/recursive_list>
+
+* L<Net::SB::Project/create_folder>
+
+As the hierarchy of folders are browsed within a project, the folder objects are 
+cached in the Project object, such that re-visiting a folder during a subsequent 
+traversal does not necessitate expensive remote queries. 
+
+=head1 METHODS
+
+=over 4
+
+=item new
+
+Generally this object should only be initialized from a L<Net::SB::Project> 
+object and not directly by end-users. It requires returned JSON data from the 
+Seven Bridges API and parent object information.
+
+=item id
+
+The hexadecimal identifier of the folder.
+
+=item project
+
+Returns the name of the project to which this folder belongs.
+
+=item href
+
+Returns the URL for this folder.
+
+=item name
+
+The human name of the folder. 
+
+=item type
+
+Always returns C<folder>.
+
+=item path
+
+=item pathname
+
+Returns the full path of the folder, including upstream folders.
+
+=item parent_id
+
+Returns the id of the parent folder.
+
+=item parent_obj
+
+Returns the stored object of the parent.
+
+=item created_on
+
+Returns the C<created_on> value.
+
+=item modified_on
+
+Returns the C<modified_on> value.
+
+=item list_contents
+
+List all files and folders in the folder. Does not recurse. Returns an array or
+array reference of L<Net::SB::File> and L<Net::SB::Folder> objects as
+appropriate.
+
+=item recursive_list
+
+=item recursive_list($regex)
+
+Recursively list all file and folders within the folder, recursing into folders
+as necessary until everything is found. Optionally pass a Perl regular
+expression as an argument for filtering the found objects based on their
+pathname, i.e. folders plus filename. Returns an array or array reference of
+L<Net::SB::File> and L<Net::SB::Folder> objects as appropriate.
+
+=item get_file_by_name($filepath)
+
+Provide a file path, either a filename in the current folder, or with folder path. 
+The file is searched for by recursing as necessary into each folder. If the file 
+(or folder) is found, it is returned as an object.
+
+=item create_folder($new_folder_name)
+
+Pass a folder or path of multiple folders. The folder is first searched for on 
+the platform, and if not found, is generated. Intermediate folders are generated 
+as necessary. A L<Net::SB::Folder> object is returned.
+
+=item upload_file($remote_filepath, $local_filepath, $overwrite)
+
+Pass two or three parameters. 
+
+* The first is the remote file path, including folder(s) and file name, 
+in the Project.
+
+* The second is the local file path of the file to be uploaded.  
+
+* The third is an optional boolean value to overwrite the file. The default is false.
+
+Intermediate folders, if present, are searched for and if necessary generated. 
+
+=item delete
+
+Deletes the folder from the platform. Only an empty folder can be deleted.
+
+=back
 
 =head1 AUTHOR
 
