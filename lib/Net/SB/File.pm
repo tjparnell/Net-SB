@@ -225,6 +225,65 @@ sub delete {
 	return $self->execute('DELETE', $self->href);
 }
 
+sub copy_to_project {
+	my ($self, $project, $new_name) = @_;
+	if ($project) {
+		my $p_ref = ref $project;
+		unless ($p_ref eq 'Net::SB::Project') {
+			carp "unrecognized $p_ref project!";
+			return;
+		}
+	}
+	else {
+		carp "must provide a project!";
+		return;
+	}
+	my $data = {
+		'project' => $project->id,
+	};
+	if ($new_name) {
+		$data->{'name'} = $new_name;
+	}
+	my $url = sprintf "%s/actions/copy", $self->href;
+	my $result = $self->execute('POST', $url, undef, $data);
+	if ($result) {
+		return $self->new($project, $result);
+	}
+	else {
+		return;
+	}
+}
+
+sub move_to_folder {
+	my ($self, $folder, $new_name) = @_;
+	if ($folder) {
+		my $f_ref = ref $folder;
+		unless ($f_ref eq 'Net::SB::Project') {
+			carp "unrecognized $f_ref folder!";
+			return;
+		}
+	}
+	else {
+		carp "must provide a folder!";
+		return;
+	}
+	my $data = {
+		'parent' => $folder->id,
+	};
+	if ($new_name) {
+		$data->{'name'} = $new_name;
+	}
+	my $url = sprintf "%s/actions/move", $self->href;
+	my $result = $self->execute('POST', $url, undef, $data);
+	if ($result) {
+		return $self->new($folder, $result);
+	}
+	else {
+		return;
+	}
+}
+
+
 1;
 
 __END__
@@ -336,6 +395,25 @@ Generates a download URL for downloading the file. This requires the file to be
 on active storage and neither archived nor linked from a storage volume. 
 Returns the URL as a string. If a URL cannot be generated, nothing is returned 
 without error, and the user should assume the file is unavailable for download.
+
+=item copy_to_project($project)
+
+Pass a L<Net::SB::Project> object into which this file should be copied. The
+current user must have write permissions for the destination project. Note that
+if an existing file with the same name already exists, the platform may
+automatically rename the file, usually by prefixing the name with an
+incrementing digit and underscore. A new file name for the destination project
+may be provided as a second value, if desired, to avoid automatic renaming.
+Folders are not supported; files are copied to the root folder.
+
+=item move_to_folder($folder)
+
+Pass a L<Net::SB::Folder> object into which this file should be copied. The 
+folder must be in the same project, not a different project. Note
+that if an existing file with the same name already exists, the platform may
+automatically rename the file, usually by prefixing the name with an
+incrementing digit and underscore. A new file name for the destination project
+may be provided as a second value if desired, to avoid this behavior. 
 
 =item delete
 
