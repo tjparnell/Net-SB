@@ -334,6 +334,135 @@ sub bulk_get_file_details {
 	return $success;
 }
 
+sub submit_multiple_file_copy {
+	my ($self, $files) = @_;
+	unless (ref $files eq 'ARRAY') {
+		carp "must pass an array reference of File objects!";
+		return;
+	}
+	
+	# collect the items to copy
+	my $items = $self->_process_multiple_files($files);
+	unless ($items) {
+		carp "problem parsing the list of files";
+		return;
+	}
+	
+	# execute
+	my $url = sprintf "%s/async/files/copy", $self->endpoint;
+	my $data = {
+		'items' => $items,
+	};
+	return $self->execute('POST', $url, undef, $data);
+}
+
+sub submit_multiple_file_move {
+	my ($self, $files) = @_;
+	unless (ref $files eq 'ARRAY') {
+		carp "must pass an array reference of File objects!";
+		return;
+	}
+	
+	# collect the items to copy
+	my $items = $self->_process_multiple_files($files);
+	
+	# execute
+	my $url = sprintf "%s/async/files/move", $self->endpoint;
+	my $data = {
+		'items' => $items,
+	};
+	return $self->execute('POST', $url, undef, $data);
+}
+
+sub _process_multiple_files {
+	my ($self, $files) = @_;
+	my @data;
+	foreach my $f ( @{ $files } ) {
+		my $item = {};
+		# source
+		if (ref $f->[0] eq 'Net::SB::File') {
+			$item->{file} = $f->[0]->id;
+		}
+		elsif (ref $f->[0] eq 'Net::SB::Folder') {
+			$item->{file} = $f->[0]->id;
+		}
+		else {
+			carp " Source is not a Net::SB::File or Net::SB::Folder object!";
+			return;
+		}
+		# destination
+		if (ref $f->[1] eq 'Net::SB::Project') {
+			$item->{project} = $f->[1]->id;
+		}
+		elsif (ref $f->[1] eq 'Net::SB::Folder') {
+			$item->{parent} = $f->[1]->id;
+		}
+		else {
+			carp " Destination is not a Net::SB::Folder or Net::SB::Project object!";
+			return;
+		}
+		if (defined $f->[2]) {
+			$item->{name} = $f->[2];
+		}
+		push @data, $item;
+	}
+	return \@data;
+}
+
+sub get_async_job_result {
+	my ($self, $result) = @_;
+	my $url = sprintf "%s/async/files/%s/%s", $self->endpoint, lc $result->{type},
+		$result->{id};
+	return $self->execute('GET', $url);
+}
+
+sub watch_async_job {
+	my ($self, $result) = @_;
+
+	my $url = sprintf "%s/async/files/%s/%s", $self->endpoint, lc $result->{type},
+		$result->{id};
+	my $nap_time = $self->sleep_value;
+	while (1) {
+		my $progress = $self->execute('GET', $url);
+		printf " > %s %s: %s, %d completed, %d failed, %d total\n",
+			$progress->{type},
+			$progress->{id},
+			$progress->{'state'},
+			$progress->{completed_files},
+			$progress->{failed_files},
+			$progress->{total_files};
+		# continue or not
+		if ($progress->{'state'} eq 'FINISHED') {
+			return $progress;
+		}
+		elsif ($progress->{'state'} =~ /submitted | resolving | running/xi) {
+			sleep $nap_time;
+		}
+		else {
+			carp sprintf( "unrecognized state %s!", $progress->{'state'} );
+			return;
+		}
+	}
+}
+
+sub get_async_job_files {
+	my ($self, $result, $project) = @_;
+	unless (ref $result eq 'HASH') {
+		carp " must pass a result hash reference";
+		return;
+	}
+	unless (ref $project eq 'NET::SB::Project') {
+		carp " must pass a Net::SB::Project object";
+		return;
+	}
+	my @files;
+	foreach my $f ( @{ $result->{result} } ) {
+		push @files, Net::SB::File->new($project, $f);
+	}
+	$self->bulk_get_file_details(\@files);
+	return wantarray ? @files : \@files;
+}
+
 sub list_volumes {
 	my $self = shift;
 	my $url = sprintf "%s/storage/volumes", $self->endpoint;
@@ -462,6 +591,65 @@ Pass an array or array reference of L<Net::SB::File> file objects. A bulk API
 call will be made to collect additional file details, and the file objects 
 will be updated with the additional details. Useful for efficiently getting 
 metadata or file sizes. The number of successful files updated will be returned.
+
+=item submit_multiple_file_copy
+
+=item submit_multiple_file_move
+
+These two methods are similar in usage and methodology. They both submit an
+asynchronous job to either copy or move a list of files from source to
+destination. A job identifier is returned upon submission, which can then be 
+queried at a later time for status and results. These methods are called by 
+passing an ARRAY reference for each file.
+
+    my $result = $Sb->submit_multiple_file_copy( 
+        [
+            [$source1, $destination],
+            [$source2, $destination, $new_name],
+            # repeat ad nauseum
+        ]
+    );
+    
+In the example, each C<$source> is either a L<Net::SB::File> or
+L<Net::SB::Folder> object, and each C<$destination> is either a
+L<Net::SB::Project> or L<Net::SB::Folder> object. Source folders will preserve
+underlying folder structure. Destinations can be mixed and do not need to be the
+same, nor even in the same project in the case of folders. If desired, a new
+file name may be provided as a SCALAR string, perhaps to avoid naming
+collisions.
+
+The returned result is HASH reference of status and results. This can be provided
+to the following methods. See 
+L<Async Copy|https://docs.sevenbridges.com/reference/copy-multiple-files> or 
+L<Async Move|https://docs.sevenbridges.com/reference/move-multiple-files-or-folders>.
+
+=item get_async_job_result
+
+Pass the C<$result> hash from a submitted async job. This project returns the 
+results of the asynchronous job.
+
+=item watch_async_job
+
+Pass the C<$result> hash from a submitted async job. B<WARNING> This project
+enters an infinite loop and prints an updated status message every cycle while
+the job is running. The loop sleeps for the number of seconds specified in
+L<Net::SB/sleep_value>. The loop breaks if the returned status code is 
+C<FINISHED> or an unrecognized status code is given. The final result is 
+returned when the loop breaks.
+
+=item get_async_job_files
+
+Pass the C<$result> hash from a completed async job. It will parse the resulting 
+file IDs and return an array reference of L<Net::SB::File> objects. Note that 
+complete directory paths may not be included.
+
+=back
+
+=head2 Volume functions
+
+These functions pertain to mounted volumes within a Seven Bridges division.
+
+=over 4
 
 =item list_volumes
 
