@@ -834,7 +834,7 @@ Seven Bridges API and parent object information.
 
 =item id
 
-The identifier, or short name, of the project.
+The identifier, or short name, of the project, such C<RFranklin/my-project>.
 
 =item project
 
@@ -866,7 +866,7 @@ Returns a L<Net::SB::Member> object of the member who created the project.
 
 =item created_on
 
-Returns the C<created_on> value.
+Returns the C<created_on> value, such C<2019-06-18T03:40:09Z>.
 
 =item modified_on
 

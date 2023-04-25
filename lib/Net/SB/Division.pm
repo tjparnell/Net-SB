@@ -438,6 +438,18 @@ the user is a member. Returns L<Net::SB::Team> objects.
 Pass the name of a new team to create. A L<Net::SB::Team> object will be returned
 to which members will need to be added.
 
+=back
+
+=head2 Bulk file functions
+
+These methods submit jobs to the Seven Bridges platforms for work on a list 
+of file objects in a single, or limited, number of API queries, as opposed to 
+submitting an API query repeatedly for each and every file. Since these work 
+on file objects through their unique IDs, they are not necessarily limited to
+a single project, and instead can work across multiple projects.
+
+=over 4
+
 =item bulk_delete
 
 Pass an array or array reference of L<Net::SB::File> file objects. These 

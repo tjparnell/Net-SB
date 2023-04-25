@@ -389,11 +389,12 @@ Seven Bridges API and parent object information.
 
 =item id
 
-The hexadecimal identifier of the folder.
+The hexadecimal identifier of the folder, such as C<600efa78e4b0cbef22dc2399>.
 
 =item project
 
-Returns the name of the project to which this folder belongs.
+Returns the name of the project to which this folder belongs, such as 
+C<RFranklin/my-project>.
 
 =item href
 
@@ -401,7 +402,7 @@ Returns the URL for this folder.
 
 =item name
 
-The human name of the folder. 
+The human name of the folder, such as C<my-folder-1>. 
 
 =item type
 
@@ -415,7 +416,7 @@ Returns the full path of the folder, including upstream folders.
 
 =item parent_id
 
-Returns the id of the parent folder.
+Returns the id of the parent folder, such as C<5d085d18e4b0acf73a39085d>.
 
 =item parent_obj
 
@@ -423,7 +424,7 @@ Returns the stored object of the parent.
 
 =item created_on
 
-Returns the C<created_on> value.
+Returns the C<created_on> value, such as C<2021-01-25T17:06:00Z> .
 
 =item modified_on
 
@@ -449,7 +450,8 @@ L<Net::SB::File> and L<Net::SB::Folder> objects as appropriate.
 
 Provide a file path, either a filename in the current folder, or with folder path. 
 The file is searched for by recursing as necessary into each folder. If the file 
-(or folder) is found, it is returned as an object.
+(or folder) is found, it is returned as an object. The file path should be a 
+scalar value, such as C<analysis/results/summary.xlsx>.
 
 =item create_folder($new_folder_name)
 
@@ -472,7 +474,9 @@ Intermediate folders, if present, are searched for and if necessary generated.
 
 =item delete
 
-Deletes the folder from the platform. Only an empty folder can be deleted.
+Deletes the folder from the platform. Only an empty folder can be deleted, otherwise
+you will likely receive errors.
+
 =back
 
 =head2 Inherited Methods
