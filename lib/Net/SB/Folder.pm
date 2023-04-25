@@ -189,7 +189,13 @@ sub get_file_by_name {
 sub recursive_list {
 	my $self = shift;
 	my $criteria = shift || undef;
+	my $limit = shift || 0;
+	$limit = int $limit;
 	my @files;
+	if ($limit) {
+		$limit += scalar( File::Spec::Unix->splitdir( $self->path ) );
+		# increase the limit to compensate for current folder
+	}
 
 	# recursively list all files
 	my $top = $self->list_contents;
@@ -202,8 +208,10 @@ sub recursive_list {
 		else {
 			# recurse into the folder
 			push @files, $item;
-			my $contents = $self->_recurse($item);
-			push @files, @{$contents};
+			my $contents = $self->_recurse($item, $limit);
+			if ( $contents and scalar @{ $contents } ) {
+				push @files, @{$contents};
+			}
 		}
 	}
 
@@ -218,7 +226,11 @@ sub recursive_list {
 }
 
 sub _recurse {
-	my ($self, $folder) = @_;
+	my ($self, $folder, $limit) = @_;
+	if ($limit) {
+		my @dirs = File::Spec::Unix->splitdir($folder->path);
+		return if (scalar @dirs >= $limit);
+	}
 	my @files;
 	my $contents = $folder->list_contents;
 	foreach my $item (@{$contents}) {
@@ -230,7 +242,9 @@ sub _recurse {
 			# recurse into this subdirectory
 			push @files, $item;
 			my $contents2 = $self->_recurse($item);
-			push @files, @{$contents2};
+			if ($contents2 and scalar @{ $contents2 } ) {
+				push @files, @{ $contents2 };
+			}
 		}
 	}
 	return \@files;

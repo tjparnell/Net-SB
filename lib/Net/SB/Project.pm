@@ -316,6 +316,8 @@ sub list_contents {
 sub recursive_list {
 	my $self = shift;
 	my $criteria = shift || undef;
+	my $limit = shift || 0;
+	$limit = int $limit;
 	my @files;
 
 	# recursively list all files
@@ -329,8 +331,10 @@ sub recursive_list {
 		else {
 			# recurse into the folder
 			push @files, $item;
-			my $contents = $self->_recurse($item);
-			push @files, @{$contents};
+			my $contents = $self->_recurse($item, $limit);
+			if ($contents and scalar @{ $contents } ) {
+				push @files, @{ $contents };
+			}
 		}
 	}
 
@@ -345,8 +349,12 @@ sub recursive_list {
 }
 
 sub _recurse {
-	my ($self, $folder) = @_;
+	my ($self, $folder, $limit) = @_;
 	my @files;
+	if ($limit) {
+		my @dirs = File::Spec::Unix->splitdir($folder->path);
+		return if (@dirs and scalar @dirs >= int $limit);
+	}
 	my $contents = $folder->list_contents;
 	foreach my $item (@{$contents}) {
 		if ($item->type eq 'file') {
@@ -356,8 +364,10 @@ sub _recurse {
 		else {
 			# recurse into this subdirectory
 			push @files, $item;
-			my $contents2 = $self->_recurse($item);
-			push @files, @{$contents2};
+			my $contents2 = $self->_recurse($item, $limit);
+			if ($contents2 and scalar @{ $contents2 } ) {
+				push @files, @{ $contents2 };
+			}
 		}
 	}
 	return \@files;
@@ -803,7 +813,6 @@ sub _upload_file {
 		}
 	}
 }
-
 
 1;
 
