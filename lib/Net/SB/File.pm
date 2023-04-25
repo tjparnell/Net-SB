@@ -339,6 +339,27 @@ Delete this file from the platform.
 
 =back
 
+=head2 Inherited Methods
+
+These are available methods inherited from L<Net::SB> that may be useful. See 
+therein for details.
+
+=over 4
+
+=item credentials
+
+=item division
+
+=item token
+
+=item endpoint
+
+=item execute
+
+=item verbose
+
+=back
+
 =head1 AUTHOR
 
  Timothy J. Parnell, PhD
