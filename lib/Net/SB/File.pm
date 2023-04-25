@@ -119,13 +119,17 @@ sub get_details {
 		# need to collect from platform
 		$result = $self->execute('GET', $self->href);
 	}
-	$self->{metadata}   = $result->{metadata};
-	$self->{tags}       = $result->{tags};
-	$self->{size}       = $result->{size};
-	$self->{created_on} = $result->{created_on};
+	$self->{name}        = $result->{name};
+	$self->{parent}      = $result->{parent};
+	$self->{project}     = $result->{project};
+	$self->{metadata}    = $result->{metadata};
+	$self->{tags}        = $result->{tags};
+	$self->{size}        = $result->{size};
+	$self->{created_on}  = $result->{created_on};
 	$self->{modified_on} = $result->{created_on};
-	$self->{origin}     = $result->{origin};
-	$self->{storage}    = $result->{storage};
+	$self->{origin}      = $result->{origin};
+	$self->{storage}     = $result->{storage};
+	
 	return 1;
 }
 
