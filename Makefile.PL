@@ -10,7 +10,7 @@ WriteMakefile(
 	"LICENSE"         => 'artistic_2',
 	"PREREQ_PM"       => {
 		'Carp'              => 0,
-		'GetOpt::Long'      => 0,
+		'Getopt::Long'      => 0,
 		'IO::File'          => 0,
 		'File::Spec'        => 0,
 		'List::Util'        => 1.45,
