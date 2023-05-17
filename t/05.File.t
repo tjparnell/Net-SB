@@ -126,8 +126,8 @@ is( $file->type, 'file', 'File type' );
 is( $file->path, 'folder1', 'File path' );
 is( $file->pathname, 'folder1/test_example.gtf', 'File path' );
 is( $file->parent_id, '600efa78e4b0cbef22dc2399', 'File parent ID' );
-is( $file->created, '2021-01-15T22:11:38Z', 'File creation date' );
-is( $file->modified, '2021-01-15T22:11:38Z', 'File modification date' );
+is( $file->created_on, '2021-01-15T22:11:38Z', 'File creation date' );
+is( $file->modified_on, '2021-01-15T22:11:38Z', 'File modification date' );
 is( $file->size, 391, 'File size' );
 
 # returned object
