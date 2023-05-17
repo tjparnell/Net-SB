@@ -194,7 +194,7 @@ sub token {
 		my $cred_path = $self->{cred};
 		
 		# division
-		my $division = $self->division;
+		my $division = $self->division || q();
 		
 		# pull token
 		my $token = q();
@@ -352,11 +352,11 @@ sub execute {
 	}
 	elsif ($method eq 'GET' and $response->{status} eq '404') {
 		# we can interpret this as a possible acceptable negative answer
-		return 1;
+		return;
 	}
 	elsif ($method eq 'GET' and $response->{status} eq '409') {
 		# we can interpret this as a possible acceptable negative answer
-		return 1;
+		return;
 	}
 	elsif ($method eq 'DELETE') {
 		# not sure what the status code for delete is, but it might be ok
@@ -377,7 +377,7 @@ sub execute {
 	else {
 		carp sprintf("A %s error occured: %s: %s", $response->{status}, 
 			$response->{reason}, $response->{content});
-		return 0;
+		return;
 	}
 	
 	# check for items
