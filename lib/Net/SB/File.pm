@@ -161,10 +161,11 @@ sub download_link {
 	my $self = shift;
 	my $url = sprintf "%s/download_info", $self->href;
 	my $result = $self->execute('GET', $url);
-	if ($result and exists $result->{url}) {
+	if ($result and ref $result eq 'HASH') {
 		return $result->{url};
 	}
 	else {
+		# if we cannot make a URL, it returns error 409, and execute() returns nothing
 		return;
 	}
 }
