@@ -10,12 +10,14 @@ our $VERSION = Net::SB->VERSION;
 
 sub new {
 	my ($class, $parent, $result) = @_;
+	if (ref $class) {
+		$class = ref $class;
+	}
+
 	# create object based on the given result
 	unless (defined $result and ref($result) eq 'HASH') {
 		confess "Must call new() with a parsed JSON member result HASH!";
 	}
-
-	# result data
 	my $self = $result;
 	if (exists $result->{resource}) {
 		# extra layer in bulk calls

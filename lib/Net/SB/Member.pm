@@ -9,6 +9,9 @@ our $VERSION = Net::SB->VERSION;
 
 sub new {
 	my ($class, $parent, $result) = @_;
+	if (ref $class) {
+		$class = ref $class;
+	}
 
 	# create object based on the given result
 	# this is tricky, because the results will vary with different keys depending 

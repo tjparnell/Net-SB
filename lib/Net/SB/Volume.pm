@@ -16,6 +16,9 @@ my $adv_headers = {
 sub new {
 	my $class = shift;
 	my $division = shift;
+	if (ref $class) {
+		$class = ref $class;
+	}
 
 	# check if we have SBG result hash
 	if (ref $_[0] eq 'HASH' and exists $_[0]->{href}) {
