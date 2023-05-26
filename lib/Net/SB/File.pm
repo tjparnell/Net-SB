@@ -261,7 +261,7 @@ sub move_to_folder {
 	my ($self, $folder, $new_name) = @_;
 	if ($folder) {
 		my $f_ref = ref $folder;
-		unless ($f_ref eq 'Net::SB::Project') {
+		unless ($f_ref eq 'Net::SB::Folder') {
 			carp "unrecognized $f_ref folder!";
 			return;
 		}
