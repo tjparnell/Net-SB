@@ -8,7 +8,7 @@ use JSON::PP;	# this is reliably installed, XS is not
 				# XS would be better performance, but we're not doing anything complicated
 use Net::SB::Division;
 
-our $VERSION = 0.2;
+our $VERSION = 0.3;
 
 
 # Initialize 
