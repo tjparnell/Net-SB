@@ -1,14 +1,15 @@
 # Net::SB
 
-This is a general purpose Perl API for interacting with the bioinformatics cloud platform
-[Seven Bridges](https://www.sevenbridges.com), as well as
+This is an unofficial general purpose Perl API for interacting with the bioinformatics
+cloud platform [Seven Bridges](https://www.sevenbridges.com), now part of 
+[Velsera](https://velsera.com), as well as
 [Cancer Genomics Cloud](https://www.cancergenomicscloud.org). 
 
 It is a wrapper around their published 
 [API](https://docs.sevenbridges.com/page/api). This by no means has complete coverage, 
 but it has been sufficient for my purposes. It is primarily focused on the following areas.
 
-- Division management, including listing divisions.
+- Division management, including listing Enterprise divisions.
 
 - Project management, including listing, creating, and modifying projects.
 

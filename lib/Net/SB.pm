@@ -546,7 +546,7 @@ Net::SB - a Perl wrapper around the Seven Bridges API
 
 =head1 DESCRIPTION
 
-This is a simplified Perl wrapper around the Seven Bridges v2 
+This is an unofficial Perl wrapper around the Seven Bridges v2 
 L<API|https://docs.sevenbridges.com/reference>.
  
 This is not a comprehensive implementation of the full API in its 
