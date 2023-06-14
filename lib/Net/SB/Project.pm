@@ -117,7 +117,7 @@ sub created_by {
 	my $data = {
 		'id'        => $id,
 		'username'  => $id,
-		'href'      => sprintf("%s/members/%s", $self->{href}, $id),
+		'href'      => sprintf("%s/users/%s", $self->{href}, $id),
 	};
 	return Net::SB::Member->new($self, $data);
 }
