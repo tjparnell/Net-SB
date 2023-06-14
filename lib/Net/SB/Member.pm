@@ -220,9 +220,12 @@ or L<Net::SB::Team> object.
 
 * L<Net::SB::Team/add_member> 
 
-Due to slight variations in the Seven Bridges API and where the 
+B<NOTE> Due to slight variations in the Seven Bridges API and where the 
 member object was generated, the metadata and identifiers for the member may 
-vary. Best attempts are made to normalize these values.
+vary. Best attempts are made to normalize these C<id> and C<username> values,
+but in general the information is highly context dependent. Further, additional 
+information can only be obtained through the API for you, the current user, and 
+not other members. 
 
 This is generally a read-only object. Modifications to permissions may be done 
 though the Project object.
