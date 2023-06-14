@@ -453,11 +453,17 @@ appropriate.
 
 =item recursive_list($regex)
 
+=item recursive_list($regex, $limit)
+
 Recursively list all file and folders within the folder, recursing into folders
 as necessary until everything is found. Optionally pass a Perl regular
 expression as an argument for filtering the found objects based on their
 pathname, i.e. folders plus filename. Returns an array or array reference of
 L<Net::SB::File> and L<Net::SB::Folder> objects as appropriate.
+
+An integer may optionally be provided as a second argument to limit the recursive 
+limit relative to the starting point, where 1 is the current folder. If a filter 
+is not needed, pass an empty or undefined value as the first argument.
 
 =item get_file_by_name($filepath)
 
