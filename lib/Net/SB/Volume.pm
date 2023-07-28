@@ -142,6 +142,11 @@ sub name {
 }
 
 sub prefix {
+	my $self = shift;
+	unless (exists $self->{service}) {
+		$self->get_details;
+	}
+	return $self->{service}{prefix};
 }
 
 sub get_details {
@@ -186,11 +191,14 @@ sub activate {
 		active => 'true'
 	};
 	my $result = $self->execute('PATCH', $self->href, $adv_headers, $data);
-	if ($result and $result->{active} eq 'true') {
-		return 1;
-	}
-	else {
-		return 0;
+	if ($result and ref($result) eq 'HASH') {
+		$self->{active} = $result->{active};
+		if ( $self->{active} ) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
 	}
 }
 
@@ -200,11 +208,14 @@ sub deactivate {
 		active => 'false'
 	};
 	my $result = $self->execute('PATCH', $self->href, $adv_headers, $data);
-	if ($result and $result->{active} eq 'false') {
-		return 1;
-	}
-	else {
-		return 0;
+	if ($result and ref($result) eq 'HASH') {
+		$self->{active} = $result->{active};
+		if ( not $self->{active} ) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
 	}
 }
 
