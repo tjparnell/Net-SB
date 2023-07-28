@@ -287,8 +287,8 @@ sub execute {
 	my ($self, $method, $url, $headers, $data) = @_;
 	
 	# check method
-	unless ($method eq 'GET' or $method eq 'POST' or $method eq 'DELETE') {
-		confess "unrecognized method $method! Must be GET|POST|DELETE";
+	unless ( $method =~ /^(?: GET | POST | DELETE | PATCH )$/x ) {
+		confess "unrecognized method $method! Must be GET|POST|DELETE|PATCH";
 	}
 	
 	# check URL

@@ -163,11 +163,8 @@ sub update {
 		return;
 	}
 
-	# set URL, using simple POST since I don't think client supports PATCH
-	my $url = $self->href . '?_method=PATCH';
-
 	# execute
-	my $result = $self->execute('POST', $url, undef, \%data);
+	my $result = $self->execute('PATCH', $self->href, undef, \%data);
 
 	# blindly replace all the update key values
 	foreach my $key (keys %{$result}) {
@@ -287,8 +284,8 @@ sub modify_member_permission {
 	}
 
 	# execute
-	my $url = $self->href . "/members/$username/permissions?_method=PATCH";
-	my $result = $self->execute('POST', $url, undef, \%permissions);
+	my $url = sprintf "%s/members/%s/permissions", $self->href, $username;
+	my $result = $self->execute('PATCH', $url, undef, \%permissions);
 	return $result;
 }
 
