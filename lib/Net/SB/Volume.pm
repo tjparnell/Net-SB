@@ -346,39 +346,29 @@ sub export_files {
 			# reset check list and loop through results
 			@check = (); # reset for next round
 			foreach my $r (@{$results}) {
-				if (exists $r->{error}) {
-					# request failed for some reason
-					# no easy way to track this back to a transfer ID
+				my $status = $r->{resource}{state};
+				my $id = $r->{resource}{source}{file} || q();
+				$file_results{$id}->{status} = $status;
+				if ($status eq 'PENDING') {
+					push @check, $r->{resource}{id};
+					$pending_count++;
+				}
+				elsif ($status eq 'RUNNING') {
+					push @check, $r->{resource}{id};
+					$running_count++;
+				}
+				elsif ($status eq 'COMPLETED') {
+					$working_count--;
+					$finish_count++;
+				}
+				elsif ($status eq 'FAILED') {
+					# not sure if this will ever pop up here, but just in case....
 					$working_count--;
 					$error_count++;
+					$file_results{$id}{error} = $r->{resource}{error}{code};
 				}
 				else {
-					my $status = $r->{resource}{state};
-					my $id = $r->{resource}{source}{file} || q();
-					$file_results{$id}->{status} = $status;
-					if ($status eq 'PENDING') {
-						push @check, $r->{resource}{id};
-						$pending_count++;
-					}
-					elsif ($status eq 'RUNNING') {
-						push @check, $r->{resource}{id};
-						$running_count++;
-					}
-					elsif ($status eq 'COMPLETED') {
-						$working_count--;
-						$finish_count++;
-					}
-					elsif ($status eq 'FAILED') {
-						# not sure if this will ever pop up here, but just in case....
-						$working_count--;
-						$error_count++;
-						if ($id) {
-							$file_results{$id}{error} = $r->{error}{code};
-						}
-					}
-					else {
-						carp "unrecognized status '$status' received!\n";
-					}
+					carp "unrecognized status '$status' received!\n";
 				}
 			}
 
@@ -529,8 +519,8 @@ A hash reference is returned upon completion. Each key is a file ID and points
 to an anonymous hash of information, as indicated below:
 
     file_id  => {
-        status      => $status,          # COMPLETED or FAILED
-        error       => $error_message,   # if present
+        status      => $status,          # either COMPLETED or FAILED
+        error       => $error_code,      # numeric error code if failed
         transfer_id => $transfer_id,
         source      => $source_pathname,
         destination => $destination_pathname
