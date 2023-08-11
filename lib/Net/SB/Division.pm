@@ -342,7 +342,7 @@ sub submit_multiple_file_copy {
 	}
 	
 	# collect the items to copy
-	my $items = $self->_process_multiple_files($files);
+	my $items = $self->_process_multiple_async_files($files);
 	unless ($items) {
 		carp "problem parsing the list of files";
 		return;
@@ -364,7 +364,7 @@ sub submit_multiple_file_move {
 	}
 	
 	# collect the items to copy
-	my $items = $self->_process_multiple_files($files);
+	my $items = $self->_process_multiple_async_files($files);
 	
 	# execute
 	my $url = sprintf "%s/async/files/move", $self->endpoint;
@@ -374,7 +374,7 @@ sub submit_multiple_file_move {
 	return $self->execute('POST', $url, undef, $data);
 }
 
-sub _process_multiple_files {
+sub _process_multiple_async_files {
 	my ($self, $files) = @_;
 	my @data;
 	foreach my $f ( @{ $files } ) {
