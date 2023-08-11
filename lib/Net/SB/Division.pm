@@ -451,7 +451,7 @@ sub get_async_job_files {
 		carp " must pass a result hash reference";
 		return;
 	}
-	unless (ref $project eq 'NET::SB::Project') {
+	unless (ref $project eq 'Net::SB::Project') {
 		carp " must pass a Net::SB::Project object";
 		return;
 	}
