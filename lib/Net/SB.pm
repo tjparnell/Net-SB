@@ -19,7 +19,7 @@ BEGIN {
 		die "No SSL support installed. Please install Net::SSLeay and IO::Socket::SSL";
 	}
 }
-my $http = HTTP::Tiny->new();
+my $http = HTTP::Tiny->new( verify_ssl => 1 );
 
 1;
 
@@ -176,7 +176,7 @@ sub sleep_value {
 }
 
 sub new_http {
-	my $h = HTTP::Tiny->new();
+	my $h = HTTP::Tiny->new( verify_ssl => 1 );
 	return $h;
 }
 
