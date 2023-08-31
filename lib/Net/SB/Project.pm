@@ -925,6 +925,12 @@ sub get_task {
 	return;
 }
 
+sub delete {
+	my $self = shift;
+	return $self->execute('DELETE', $self->href);
+}
+
+
 1;
 
 __END__
@@ -1101,6 +1107,10 @@ analysis tasks executed in this Project.
 Retrieves a specific analysis task given the unique id number. Returns a 
 L<Net::SB::Task> object if found.
 
+=item delete
+
+Delete the project! B<All files therein will be deleted!!!>. Requires
+admin privileges on the project.  
 
 =back
 
