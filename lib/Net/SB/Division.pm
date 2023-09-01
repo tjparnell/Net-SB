@@ -221,13 +221,15 @@ sub bulk_delete {
 				file_ids => \@ids,
 			};
 			my $results = $self->execute('POST', $url, undef, $data);
+			my $n = 0;
 			foreach my $r (@{$results}) {
 				if (exists $r->{error}) {
 					# problem
-					my $id = $r->{id} || undef;
-					my $j = $lookup{$id};
-					push @outs, sprintf "%s: %s %s", $r->{error}{code},
-						$r->{error}{message}, $files[$j]->pathname || undef;
+					# we don't know the file name, it's not returned
+					# assume in order?
+					my $j = $lookup{ $ids[$n] };
+					push @outs, sprintf "%s: %s %s?", $r->{error}{code}, 
+						$r->{error}{message}, $files[$j]->pathname;
 				}
 				else {
 					# evidently success
@@ -235,6 +237,7 @@ sub bulk_delete {
 					my $j = $lookup{$id};
 					push @outs, sprintf "deleted %s", $files[$j]->pathname;
 				}
+				$n++;
 			}
 		}
 	}
