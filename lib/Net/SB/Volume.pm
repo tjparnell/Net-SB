@@ -56,11 +56,15 @@ sub _new_s3 {
 	my ($class, $options) = @_;
 	my $key_id =
 		$options->{access_key_id} ||
+		$options->{aws_access_key_id} ||
 		$options->{credentials}{access_key_id} ||
+		$options->{credentials}{aws_access_key_id} ||
 		undef;
 	my $secret_key =
 		$options->{secret_access_key} ||
+		$options->{aws_secret_access_key} ||
 		$options->{credentials}{secret_access_key} ||
+		$options->{credentials}{aws_secret_access_key} ||
 		undef;
 	my $mode = $options->{access} || $options->{mode} || 'RO';
 	my $division = $options->{divobj};
