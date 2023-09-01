@@ -442,8 +442,8 @@ sub list_files_by_task {
 				push @files, Net::SB::File->new($self, $f);
 			}
 			elsif ($type eq 'folder') {
-				my $folder = Net::SB::Folder->new($self, $f);
-				push @files, $folder;
+				my $folder2 = Net::SB::Folder->new($self, $f);
+				push @files, $folder2;
 			}
 			else {
 				carp sprintf "unknown object type '$type' for %s", $f->{name};
